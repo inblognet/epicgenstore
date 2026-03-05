@@ -1,0 +1,259 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(CUSTOMER)
+
+  phone         String?
+  address       String?
+  city          String?
+  postalCode    String?
+  wishlistItems WishlistItem[]
+  orders        Order[]
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String   // Assuming your Product ID is a String. Change to Int if it's an Int!
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // This ensures a user can't add the exact same product to their wishlist twice
+  @@unique([userId, productId])
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  imageUrl    String?
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryHierarchy")
+
+  // Implicit Many-to-Many relation with Product
+  products    Product[]
+  carousels   Carousel[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// --- NEW MODEL ---
+model Carousel {
+  id              Int       @id @default(autoincrement())
+  title           String
+  isVisible       Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // The optional product category to display products from
+  category        Category? @relation(fields: [categoryId], references: [id])
+
+  // FIXED: Changed from Int? to String? to match Category.id
+  categoryId      String?
+
+  // NEW: Fields for the promotional side banner image
+  imageUrl        String?
+  imageTitle      String?
+  imageSubtitle   String?
+  imageButtonText String?
+}
+
+
+model SiteSetting {
+  id                  Int      @id @default(1)
+  heroTitle           String   @default("Welcome to epicgenstore")
+  heroSubtitle        String   @default("Discover our enterprise-grade collection.")
+  heroImageUrl        String   @default("https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80")
+  latestArrivalsTitle String   @default("Latest Promotions")
+  carouselItems       Json     @default("[]")
+  footerAboutText     String   @default("Your trusted partner for enterprise-grade computer hardware in Sri Lanka. Providing quality products and exceptional service.")
+  contactAddress      String   @default("123 Tech Avenue, Colombo 03, Sri Lanka")
+  contactPhone        String   @default("+94 112 345 678")
+  contactEmail        String   @default("info@epicgenstore.lk")
+  facebookUrl         String?  @default("#")
+  instagramUrl        String?  @default("#")
+  twitterUrl          String?  @default("#")
+  servicePageData     Json     @default("{}")
+  bankPageData        Json     @default("{}")
+  aboutPageData       Json     @default("{}")
+  contactPageData     Json     @default("{}")
+  privacyPolicyData   Json     @default("{}")
+  refundPolicyData    Json     @default("{}")
+  termsPageData       Json     @default("{}")
+  storeName           String? @default("EPIC STORE")
+  themePreset         String? @default("theme-epic-dark")
+  promoBanner    String?
+  youtubeUrl     String?
+  quotationLogoUrl String?
+  quotationAddress String?
+  quotationEmail   String?
+  quotationPhone   String?
+  quotationWebsite String?
+  updatedAt           DateTime @updatedAt
+}
+
+model CustomerExperienceImage {
+  id        String   @id @default(cuid())
+  url       String   // The URL returned by your hosting provider (e.g., Vercel Blob)
+  altText   String?  // Optional text for accessibility
+  order     Int      // To sequence them in the admin panel and public carousel
+  createdAt DateTime @default(now())
+}
+
+// --- NEW: Inbox Messages Model ---
+model ContactMessage {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String
+  phone       String
+  serviceType String
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+
+model Tag {
+  id        String    @id @default(cuid())
+  title     String    @default("GENERAL") // <-- ADD THIS DEFAULT
+  name      String
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id            String         @id @default(uuid())
+  name          String
+  slug          String         @unique
+  description   String?        @db.Text
+  price         Decimal        @db.Decimal(10, 2)
+  onSale        Boolean        @default(false)
+  salePrice     Decimal?       @db.Decimal(10, 2)
+  imageUrl      String?
+  images        String[]       @default([])
+  stock         Int            @default(0)
+
+  // --- FIXED: Now a many-to-many array (Removed categoryId) ---
+  categories    Category[]
+  tags          Tag[]          // Many-to-many relationship
+
+  orderItems    OrderItem[]
+  vouchers      Voucher[]      @relation("ProductVouchers")
+  wishlistItems WishlistItem[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Voucher {
+  id            String       @id @default(uuid())
+  code          String       @unique
+  discountType  DiscountType
+  discountValue Decimal      @db.Decimal(10, 2)
+  isActive      Boolean      @default(true)
+  expiryDate    DateTime?
+
+  products      Product[]    @relation("ProductVouchers")
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String
+  total       Decimal     @db.Decimal(10, 2)
+  discount    Decimal     @db.Decimal(10, 2) @default(0)
+  voucherCode String?
+
+  status      OrderStatus @default(PENDING)
+  paymentRef  String?     @unique
+  bankSlipUrl String?
+
+  // UPDATED RELATION: items will be deleted if order is deleted
+  items       OrderItem[]
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+
+  // FIXED: Added onDelete: Cascade to handle parent order deletion
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+}

@@ -143,7 +143,8 @@ export function Navbar({
         <div className="container mx-auto px-4 flex items-center justify-between gap-6 lg:gap-12">
 
           <div className="lg:hidden">
-            <MobileMenuButton />
+            {/* FIXED: Passed categories prop to MobileMenuButton */}
+            <MobileMenuButton categories={categories} />
           </div>
 
           <div className="flex flex-col flex-shrink-0">

@@ -1,3 +1,4 @@
+// components/client/hero-carousel.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -25,7 +26,8 @@ export function HeroCarousel({ items }: { items: CarouselItem[] }) {
   if (!items || items.length === 0) return null;
 
   return (
-    <section className="relative h-[65vh] min-h-[550px] overflow-hidden bg-surface-bg group transition-colors duration-300">
+    // FIXED: Made height dynamic. Smaller on mobile (h-[50vh] min-h-[300px]), larger on desktop (md:h-[65vh] md:min-h-[550px])
+    <section className="relative h-[50vh] min-h-[300px] md:h-[65vh] md:min-h-[550px] overflow-hidden bg-surface-bg group transition-colors duration-300">
       {items.map((item, index) => (
         <div
           key={index}
@@ -42,7 +44,7 @@ export function HeroCarousel({ items }: { items: CarouselItem[] }) {
             alt={`Promotion ${index + 1}`}
           />
 
-          {/* FIXED: Locked the shadow strictly to the bottom 1/3 of the screen so it doesn't wash out the middle/top of the image */}
+          {/* Locked the shadow strictly to the bottom 1/3 of the screen so it doesn't wash out the middle/top of the image */}
           <div className="absolute bottom-0 w-full h-1/3 bg-gradient-to-t from-surface-bg to-transparent transition-colors duration-300" />
 
           <div className="absolute inset-0 flex items-center justify-center text-center p-4">
@@ -51,7 +53,8 @@ export function HeroCarousel({ items }: { items: CarouselItem[] }) {
             }`}>
               <Link
                 href={item.link}
-                className="bg-brand hover:bg-brand-hover text-black font-black py-4 px-10 rounded-full text-lg shadow-xl shadow-brand/20 transition-all hover:scale-105 active:scale-95 block"
+                // FIXED: Scaled down the button size slightly on mobile for better proportions
+                className="bg-brand hover:bg-brand-hover text-black font-black py-3 px-6 md:py-4 md:px-10 rounded-full text-sm md:text-lg shadow-xl shadow-brand/20 transition-all hover:scale-105 active:scale-95 block"
               >
                 Shop The Collection
               </Link>
@@ -65,27 +68,27 @@ export function HeroCarousel({ items }: { items: CarouselItem[] }) {
         <>
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-surface-card/80 text-theme-main opacity-0 group-hover:opacity-100 transition-all hover:bg-brand hover:text-black shadow-lg"
+            className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 p-1.5 md:p-2 rounded-full bg-surface-card/80 text-theme-main opacity-0 group-hover:opacity-100 transition-all hover:bg-brand hover:text-black shadow-lg"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-surface-card/80 text-theme-main opacity-0 group-hover:opacity-100 transition-all hover:bg-brand hover:text-black shadow-lg"
+            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 p-1.5 md:p-2 rounded-full bg-surface-card/80 text-theme-main opacity-0 group-hover:opacity-100 transition-all hover:bg-brand hover:text-black shadow-lg"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
           </button>
         </>
       )}
 
       {/* Navigation Dots */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+      <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
         {items.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              i === current ? "bg-brand w-8" : "bg-theme-border hover:bg-theme-muted w-2"
+            className={`h-1.5 md:h-2 rounded-full transition-all duration-300 ${
+              i === current ? "bg-brand w-6 md:w-8" : "bg-theme-border hover:bg-theme-muted w-1.5 md:w-2"
             }`}
           />
         ))}

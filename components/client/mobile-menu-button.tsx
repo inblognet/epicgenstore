@@ -2,14 +2,29 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, X, ChevronRight, Home, Package, Truck, Info, PhoneCall, Wrench, Landmark, Shield, User, LogOut } from "lucide-react";
+import { Menu, X, ChevronRight, Home, Package, Truck, Info, PhoneCall, Wrench, TicketPercent, Landmark, Shield, User, LogOut, ChevronDown, Folder } from "lucide-react";
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
-import Image from "next/image"; // NEW: For user profile image
+import { useSession, signOut, signIn } from "next-auth/react";
 
-export function MobileMenuButton() {
+// Define the type for Categories so it perfectly matches Prisma's output
+interface ChildCategory {
+  id: string | number;
+  name: string;
+  slug: string;
+}
+
+interface CategoryWithChildren {
+  id: string | number;
+  name: string;
+  slug: string;
+  children?: ChildCategory[];
+}
+
+export function MobileMenuButton({ categories = [] }: { categories?: CategoryWithChildren[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = useSession();
+
+  const closeMenu = () => setIsOpen(false);
 
   return (
     <>
@@ -25,7 +40,7 @@ export function MobileMenuButton() {
         {/* Overlay */}
         <div
           className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0"}`}
-          onClick={() => setIsOpen(false)}
+          onClick={closeMenu}
         />
 
         {/* Menu Panel */}
@@ -36,73 +51,104 @@ export function MobileMenuButton() {
             <span className="text-lg font-black tracking-tighter text-white">
               <span className="text-brand transition-colors duration-300">ALL</span> MENUS
             </span>
-            <button onClick={() => setIsOpen(false)} className="text-zinc-500 hover:text-white transition-colors duration-300">
+            <button onClick={closeMenu} className="text-zinc-500 hover:text-white transition-colors duration-300">
               <X className="w-6 h-6" />
             </button>
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-4 flex flex-col gap-2 overflow-y-auto flex-grow">
+          <nav className="py-4 flex flex-col overflow-y-auto flex-grow pb-24" style={{ scrollbarWidth: 'none' }}>
 
-            {/* --- NEW: USER PROFILE SECTION --- */}
-            {session?.user ? (
-              <div className="mb-4 pb-4 border-b border-zinc-800/50 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-surface-bg border border-brand/50 flex items-center justify-center overflow-hidden shrink-0">
-                  {session.user.image ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={session.user.image} alt="User" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-5 h-5 text-brand" />
-                  )}
+            {/* --- USER PROFILE / LOGIN SECTION --- */}
+            <div className="px-4">
+              {session?.user ? (
+                <div className="mb-4 pb-4 border-b border-zinc-800/50 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-surface-bg border border-brand/50 flex items-center justify-center overflow-hidden shrink-0">
+                    {session.user.image ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={session.user.image} alt="User" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5 text-brand" />
+                    )}
+                  </div>
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider truncate">
+                      Hi, {session.user.name?.split(' ')[0] || 'There'}!
+                    </span>
+                    <Link href="/profile" onClick={closeMenu} className="text-[10px] text-brand hover:underline mt-0.5">
+                      View My Profile
+                    </Link>
+                  </div>
                 </div>
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider truncate">
-                    Hi, {session.user.name?.split(' ')[0] || 'There'}!
-                  </span>
-                  <span className="text-[10px] text-zinc-500 truncate">
-                    {session.user.email}
-                  </span>
+              ) : (
+                <div className="mb-4 pb-4 border-b border-zinc-800/50">
+                  <button
+                    onClick={() => { closeMenu(); signIn("google"); }}
+                    className="flex w-full items-center justify-center gap-3 p-3.5 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 font-black text-sm uppercase tracking-widest transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_25px_rgba(255,255,255,0.15)] active:scale-95"
+                  >
+                    <GoogleIcon className="w-5 h-5" />
+                    Login via Google
+                  </button>
                 </div>
-              </div>
-            ) : (
-              <div className="mb-4 pb-4 border-b border-zinc-800/50">
-                <MobileNavLink href="/login" icon={<User className="w-4 h-4"/>} label="Login / Register" onClick={() => setIsOpen(false)} />
-              </div>
-            )}
-            <MobileNavLink href="/profile" icon={<User className="w-4 h-4"/>} label="My Profile" onClick={() => setIsOpen(false)} />
-            <MobileNavLink href="/" icon={<Home className="w-4 h-4"/>} label="Home" onClick={() => setIsOpen(false)} />
+              )}
+            </div>
 
-            <MobileNavLink href="/products?category=all" icon={<Package className="w-4 h-4"/>} label="All Products" onClick={() => setIsOpen(false)} />
+            {/* --- MAIN MENU --- */}
+            <MenuSectionTitle title="Main Menu" />
+            <div className="flex flex-col gap-1 px-3">
+              <MobileNavLink href="/" icon={<Home className="w-4 h-4"/>} label="Home" onClick={closeMenu} />
+              <MobileNavLink href="/products?onSale=true" icon={<TicketPercent className="w-4 h-4"/>} label="Promotions" onClick={closeMenu} />
+              <MobileNavLink href="/profile" icon={<Truck className="w-4 h-4"/>} label="Track Order" onClick={closeMenu} />
+            </div>
 
+            {/* --- CATEGORIES --- */}
+            <MenuSectionTitle title="Categories" />
+            <div className="flex flex-col gap-1 px-3">
+              <MobileNavLink href="/products?category=all" icon={<Package className="w-4 h-4"/>} label="All Categories" onClick={closeMenu} />
+
+              <div className="mt-2 flex flex-col gap-1">
+                {categories.map((category) => (
+                  <CategoryAccordionItem key={category.id} category={category} closeMenu={closeMenu} />
+                ))}
+              </div>
+            </div>
+
+            {/* --- SERVICES & SUPPORT --- */}
+            <MenuSectionTitle title="Services & Support" />
+            <div className="flex flex-col gap-1 px-3">
+              <MobileNavLink href="/service-center" icon={<Wrench className="w-4 h-4"/>} label="Service Center" onClick={closeMenu} />
+              <MobileNavLink href="/bank-details" icon={<Landmark className="w-4 h-4"/>} label="Bank Details" onClick={closeMenu} />
+              <MobileNavLink href="/quotation" icon={<Package className="w-4 h-4"/>} label="Get Quotation" onClick={closeMenu} />
+              <MobileNavLink href="/about" icon={<Info className="w-4 h-4"/>} label="About Us" onClick={closeMenu} />
+              <MobileNavLink href="/contact" icon={<PhoneCall className="w-4 h-4"/>} label="Contact Us" onClick={closeMenu} />
+            </div>
+
+            {/* --- ADMIN --- */}
             {session?.user?.role === "ADMIN" && (
-              <div className="mb-2 pb-2 border-b border-zinc-800/50">
-                <MobileNavLink href="/admin" icon={<Shield className="w-4 h-4"/>} label="Admin Dashboard" onClick={() => setIsOpen(false)} />
-              </div>
+              <>
+                <MenuSectionTitle title="Administration" />
+                <div className="flex flex-col gap-1 px-3">
+                  <MobileNavLink href="/admin" icon={<Shield className="w-4 h-4"/>} label="Admin Dashboard" onClick={closeMenu} />
+                </div>
+              </>
             )}
 
-            <MobileNavLink href="/service-center" icon={<Wrench className="w-4 h-4"/>} label="Service Center" onClick={() => setIsOpen(false)} />
-            <MobileNavLink href="/bank-details" icon={<Landmark className="w-4 h-4"/>} label="Bank Details" onClick={() => setIsOpen(false)} />
-
-            <MobileNavLink href="/profile" icon={<Truck className="w-4 h-4"/>} label="Track Order" onClick={() => setIsOpen(false)} />
-
-            <MobileNavLink href="/about" icon={<Info className="w-4 h-4"/>} label="About Us" onClick={() => setIsOpen(false)} />
-            <MobileNavLink href="/contact" icon={<PhoneCall className="w-4 h-4"/>} label="Contact Us" onClick={() => setIsOpen(false)} />
-
-            <div className="mt-6 pt-6 border-t border-zinc-800/50">
-              <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] px-4 mb-4">Follow Us</p>
-              <div className="flex gap-6 px-4">
+            {/* --- FOLLOW US --- */}
+            <div className="mt-8 pt-6 border-t border-zinc-800/50">
+              <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] px-5 mb-4">Follow Us</p>
+              <div className="flex gap-6 px-5">
                 <FacebookIcon className="w-5 h-5 text-zinc-400 hover:text-brand transition-colors duration-300 cursor-pointer" />
                 <YoutubeIcon className="w-5 h-5 text-zinc-400 hover:text-brand transition-colors duration-300 cursor-pointer" />
               </div>
             </div>
           </nav>
 
-          {/* --- NEW: LOGOUT SECTION --- */}
+          {/* LOGOUT SECTION */}
           {session?.user && (
-            <div className="p-4 border-t border-zinc-800/50 shrink-0 bg-surface-card mt-auto">
+            <div className="p-4 border-t border-zinc-800/50 shrink-0 bg-surface-card mt-auto z-10">
               <button
                 onClick={() => {
-                  setIsOpen(false);
+                  closeMenu();
                   signOut({ callbackUrl: "/" });
                 }}
                 className="flex w-full items-center justify-center gap-2 p-3 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white font-bold text-sm transition-all duration-300"
@@ -119,12 +165,22 @@ export function MobileMenuButton() {
   );
 }
 
+// --- HELPER COMPONENTS ---
+
+function MenuSectionTitle({ title }: { title: string }) {
+  return (
+    <h3 className="text-[11px] font-black text-brand uppercase tracking-widest px-5 mt-6 mb-3">
+      {title}
+    </h3>
+  );
+}
+
 function MobileNavLink({ href, icon, label, onClick }: { href: string; icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center justify-between p-4 rounded-xl bg-surface-bg/30 border border-transparent hover:border-brand/30 hover:bg-surface-bg transition-all duration-300 group"
+      className="flex items-center justify-between p-3.5 rounded-xl hover:bg-surface-bg/50 border border-transparent hover:border-brand/20 transition-all duration-300 group"
     >
       <div className="flex items-center gap-4 text-zinc-300 group-hover:text-white transition-colors duration-300">
         <span className="text-brand transition-colors duration-300">{icon}</span>
@@ -132,6 +188,74 @@ function MobileNavLink({ href, icon, label, onClick }: { href: string; icon: Rea
       </div>
       <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-brand transition-colors duration-300" />
     </Link>
+  );
+}
+
+function CategoryAccordionItem({ category, closeMenu }: { category: CategoryWithChildren, closeMenu: () => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const hasChildren = category.children && category.children.length > 0;
+
+  return (
+    <div className="flex flex-col">
+      {hasChildren ? (
+        <>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center justify-between p-3.5 rounded-xl hover:bg-surface-bg/50 border border-transparent hover:border-brand/20 transition-all duration-300 group w-full text-left"
+          >
+            <div className="flex items-center gap-4 text-zinc-300 group-hover:text-white transition-colors duration-300">
+              <Folder className="w-4 h-4 text-brand fill-brand/20" />
+              <span className="text-sm font-bold uppercase tracking-wider">{category.name}</span>
+            </div>
+            <div className={`p-1 rounded-md border transition-colors duration-300 ${isOpen ? 'border-brand/50 bg-brand/10' : 'border-zinc-700/50'}`}>
+               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isOpen ? "rotate-180 text-brand" : "text-zinc-500 group-hover:text-brand"}`} />
+            </div>
+          </button>
+
+          {/* Subcategories Dropdown */}
+          <div className={`flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
+            <div className="flex flex-col gap-1 pl-8 ml-2 border-l border-zinc-800 mt-1 mb-2">
+              {category.children!.map(child => (
+                <Link
+                  key={child.id}
+                  href={`/products?category=${child.slug}`}
+                  onClick={closeMenu}
+                  className="py-2.5 px-3 text-[11px] font-bold text-zinc-400 hover:text-brand flex items-center gap-3 transition-colors uppercase tracking-widest rounded-lg hover:bg-surface-bg/30"
+                >
+                  <ChevronRight className="w-3 h-3 opacity-40" />
+                  {child.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <Link
+          href={`/products?category=${category.slug}`}
+          onClick={closeMenu}
+          className="flex items-center justify-between p-3.5 rounded-xl hover:bg-surface-bg/50 border border-transparent hover:border-brand/20 transition-all duration-300 group w-full text-left"
+        >
+          <div className="flex items-center gap-4 text-zinc-300 group-hover:text-white transition-colors duration-300">
+            <Folder className="w-4 h-4 text-brand fill-brand/20" />
+            <span className="text-sm font-bold uppercase tracking-wider">{category.name}</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-brand transition-colors duration-300" />
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// --- ICONS ---
+
+function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
   );
 }
 

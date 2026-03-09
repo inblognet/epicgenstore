@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/client/add-to-cart-button";
 import { ProductImageGallery } from "@/components/client/product-image-gallery";
 import Link from "next/link";
-import { ArrowLeft, Tag, Truck, RefreshCcw, HeadphonesIcon, Building, Banknote, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Tag, Truck, RefreshCcw, HeadphonesIcon, Building, Banknote, ShieldCheck, Star, User } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { WishlistButton } from "@/components/client/wishlist-button";
 
@@ -16,17 +16,30 @@ export default async function ProductDetailsPage({
   const resolvedParams = await params;
   const session = await auth();
 
+  // 1. UPGRADED: Fetch the product WITH its reviews and the users who wrote them
   const product = await prisma.product.findUnique({
     where: { slug: resolvedParams.slug },
     include: {
       categories: true,
       tags: true,
+      reviews: {
+        include: {
+          user: { select: { name: true, image: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      }
     }
   });
 
   if (!product) {
     return notFound();
   }
+
+  // 2. UPGRADED: Calculate the real review stats
+  const reviewCount = product.reviews.length;
+  const averageRating = reviewCount > 0
+    ? product.reviews.reduce((acc, review) => acc + review.rating, 0) / reviewCount
+    : 0;
 
   const categoryIds = product.categories.map(c => c.id);
   const relatedProducts = categoryIds.length > 0 ? await prisma.product.findMany({
@@ -111,10 +124,23 @@ export default async function ProductDetailsPage({
               </div>
             )}
 
-            {/* Reviews Mockup */}
-            <div className="flex items-center gap-2 mb-6">
-              <div className="flex text-theme-muted/50 text-xs tracking-widest">★★★★★</div>
-              <span className="text-[10px] font-bold text-theme-muted uppercase tracking-widest">5 Reviews</span>
+            {/* 3. UPGRADED: Real Dynamic Star Rating */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`w-4 h-4 ${
+                      star <= Math.round(averageRating)
+                        ? "fill-yellow-500 text-yellow-500"
+                        : "text-theme-border"
+                    } transition-colors duration-300`}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] font-bold text-theme-muted uppercase tracking-widest pt-0.5">
+                {reviewCount} {reviewCount === 1 ? 'Review' : 'Reviews'}
+              </span>
               <span className={`ml-4 text-[9px] font-black px-2 py-0.5 rounded tracking-widest uppercase ${
                 product.stock > 0 ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
               }`}>
@@ -133,11 +159,11 @@ export default async function ProductDetailsPage({
                 </span>
               )}
               <span className="text-[11px] text-theme-muted font-medium mt-2">
-                or up to 4 X LKR {pay2yInstallment.toLocaleString('en-US', { minimumFractionDigits: 2 })} with <span className="font-black text-[#00AEEF] italic">Pay2y-Not available</span>
+                or up to 4 X LKR {pay2yInstallment.toLocaleString('en-US', { minimumFractionDigits: 2 })} with <span className="font-black text-[#00AEEF] italic">Pay2y</span>
               </span>
             </div>
 
-            {/* --- UPGRADED: 4-COLUMN PAYMENT OPTIONS GRID --- */}
+            {/* --- PAYMENT OPTIONS GRID --- */}
             <div className="grid grid-cols-4 gap-2 md:gap-3 mb-4">
               <div className="border border-theme-border rounded-lg p-2 md:p-3 flex flex-col items-center justify-center gap-1.5 bg-surface-card hover:border-brand transition-colors cursor-pointer">
                 <Banknote className="w-5 h-5 text-theme-muted" />
@@ -196,7 +222,7 @@ export default async function ProductDetailsPage({
                </div>
             </div>
 
-            {/* --- UPGRADED: Safe Checkout Badges (Pure CSS Icons) --- */}
+            {/* Safe Checkout Badges (Pure CSS Icons) */}
             <div className="flex flex-col items-center gap-4">
                <span className="text-xs font-black uppercase tracking-widest text-theme-main flex items-center gap-2">
                  <ShieldCheck className="w-4 h-4 text-green-500" /> Guarantee Safe & Secure Checkout
@@ -248,6 +274,53 @@ export default async function ProductDetailsPage({
              ) : (
                 <p className="text-center text-theme-muted italic">No detailed description provided for this item.</p>
              )}
+          </div>
+        </div>
+
+        {/* 4. NEW: CUSTOMER REVIEWS LIST SECTION */}
+        <div className="pt-10 pb-16 border-t border-theme-border border-dashed">
+          <div className="flex flex-col items-center justify-center mb-10 text-center">
+             <h3 className="text-2xl font-black text-theme-main uppercase tracking-widest mb-2">Customer Reviews</h3>
+             <p className="text-theme-muted text-xs font-bold uppercase tracking-widest">
+               {reviewCount} {reviewCount === 1 ? 'Review' : 'Reviews'} for this product
+             </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto space-y-4">
+            {product.reviews.length > 0 ? (
+              product.reviews.map(review => (
+                <div key={review.id} className="bg-surface-card border border-theme-border p-6 rounded-2xl flex flex-col gap-4">
+                  <div className="flex items-center justify-between border-b border-theme-border/50 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-surface-bg border border-theme-border flex items-center justify-center overflow-hidden">
+                        {review.user?.image ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={review.user.image} alt={review.user.name || "User"} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-5 h-5 text-theme-muted" />
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-black text-xs uppercase tracking-widest text-theme-main">{review.user?.name || "Verified Customer"}</span>
+                        <div className="flex gap-0.5 mt-1">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <Star key={star} className={`w-3 h-3 ${star <= review.rating ? "fill-yellow-500 text-yellow-500" : "text-theme-border"}`} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-theme-muted font-black uppercase tracking-widest">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-theme-muted text-sm leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+                </div>
+              ))
+            ) : (
+              <div className="bg-surface-card/30 border border-theme-border p-12 rounded-2xl text-center">
+                <p className="text-theme-muted font-medium text-sm">No reviews yet. Purchase this item to be the first to leave a review!</p>
+              </div>
+            )}
           </div>
         </div>
 

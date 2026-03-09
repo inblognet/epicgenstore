@@ -42,6 +42,7 @@ model User {
   orders        Order[]
   accounts      Account[]
   sessions      Session[]
+  reviews   Review[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -209,10 +210,31 @@ model Product {
   orderItems    OrderItem[]
   vouchers      Voucher[]      @relation("ProductVouchers")
   wishlistItems WishlistItem[]
-
+  reviews   Review[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
+
+
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // Will store 1, 2, 3, 4, or 5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  // Link to the User who wrote it
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Link to the Product being reviewed
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Ensure a user can only review a specific product once
+  @@unique([userId, productId])
+}
+
 
 model Voucher {
   id            String       @id @default(uuid())

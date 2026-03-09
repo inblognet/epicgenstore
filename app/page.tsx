@@ -419,7 +419,7 @@ export default async function HomePage() {
             <div className="flex flex-col items-center text-center px-4">
               <HeadphonesIcon className="w-8 h-8 text-brand mb-4 transition-colors duration-300" />
               <h4 className="text-theme-main font-black uppercase tracking-widest text-xs md:text-sm mb-2">Online Customer Service</h4>
-              <p className="text-theme-muted text-[10px] md:text-xs font-medium">Call our expert <span className="text-red-500 font-bold"></span></p>
+              <p className="text-theme-muted text-[10px] md:text-xs font-medium">Call our expert <span className="text-red-500 font-bold">(076) - 7629227</span></p>
             </div>
 
           </div>
@@ -441,6 +441,31 @@ export default async function HomePage() {
               <div className="bg-white w-12 h-8 md:w-14 md:h-9 rounded flex items-center justify-center shadow-md border border-zinc-200 relative overflow-hidden">
                 <div className="w-4 h-4 md:w-5 md:h-5 bg-[#EB001B] rounded-full absolute -ml-3 mix-blend-multiply"></div>
                 <div className="w-4 h-4 md:w-5 md:h-5 bg-[#F79E1B] rounded-full absolute ml-3 mix-blend-multiply"></div>
+              </div>
+
+              {/* AMERICAN EXPRESS */}
+              <div className="bg-white w-12 h-8 md:w-14 md:h-9 rounded flex items-center justify-center shadow-md border border-zinc-200 p-1.5">
+                <div className="bg-[#27AEE3] w-full h-full rounded-sm flex flex-col items-center justify-center leading-[0.85]">
+                  <span className="text-white text-[4px] md:text-[5px] font-bold tracking-wider">AMERICAN</span>
+                  <span className="text-white text-[4px] md:text-[5px] font-bold tracking-wider">EXPRESS</span>
+                </div>
+              </div>
+
+              {/* DINERS CLUB */}
+              <div className="bg-white w-12 h-8 md:w-14 md:h-9 rounded flex items-center justify-center shadow-md border border-zinc-200">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-4 h-4 md:w-5 md:h-5 border-[1.5px] border-[#004A97] rounded-full flex items-center justify-center mb-0.5">
+                    <div className="w-2 h-2 md:w-2.5 md:h-2.5 border-l-[1.5px] border-b-[1.5px] border-[#004A97] rounded-full"></div>
+                  </div>
+                  <span className="text-[#004A97] text-[3px] md:text-[4px] font-bold uppercase leading-none tracking-wider">Diners Club</span>
+                </div>
+              </div>
+
+              {/* DISCOVER */}
+              <div className="bg-white w-12 h-8 md:w-14 md:h-9 rounded flex items-center justify-center shadow-md border border-zinc-200">
+                <span className="text-black font-black text-[7px] md:text-[8px] tracking-tighter flex items-center">
+                  DISC<div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-[#E55C20] rounded-full mx-[1px]"></div>VER
+                </span>
               </div>
 
               {/* UNIONPAY */}

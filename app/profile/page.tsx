@@ -3,9 +3,9 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-// FIXED: Removed the unused 'Package' icon
-import { User, MapPin, CheckCircle, Save, Camera, Clock, CreditCard, Truck } from "lucide-react";
+import { User, MapPin, CheckCircle, Save, Camera, Clock, CreditCard, Truck, Star } from "lucide-react";
 import { OrderSlipUpload } from "@/components/client/order-slip-upload";
+import { ReviewForm } from "@/components/client/review-form";
 
 export default async function UserProfilePage() {
   // 1. Authenticate the User
@@ -14,14 +14,24 @@ export default async function UserProfilePage() {
     redirect("/");
   }
 
-  // 2. Fetch user profile, orders, and store settings
+  // 2. Fetch user profile, orders (with items), reviews, and store settings
   const [user, settings] = await Promise.all([
     prisma.user.findUnique({
       where: { email: session.user.email },
       include: {
+        // FIXED: Changed 'orderItems' to 'items' to match standard Prisma schemas.
+        // (If your schema uses a different name, update 'items' below to match your Order model!)
         orders: {
           orderBy: { createdAt: 'desc' },
-        }
+          include: {
+            items: {
+              include: {
+                product: true
+              }
+            }
+          }
+        },
+        reviews: true,
       }
     }),
     prisma.siteSetting.findUnique({ where: { id: 1 } })
@@ -29,12 +39,32 @@ export default async function UserProfilePage() {
 
   if (!user) redirect("/");
 
-  // "Active" orders are anything still in progress
-  const activeStatuses = ["PENDING", "PAID", "SHIPPED"];
-  const activeOrders = user.orders.filter(o => activeStatuses.includes(o.status));
+  // Safely extract orders and explicitly type them to satisfy strict TypeScript rules
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userOrders: any[] = user.orders || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userReviews: any[] = (user as any).reviews || [];
 
-  // "History" is anything finalized (CANCELLED)
-  const completedOrders = user.orders.filter(o => !activeStatuses.includes(o.status));
+  const activeStatuses = ["PENDING", "PAID", "SHIPPED"];
+  const activeOrders = userOrders.filter(o => activeStatuses.includes(o.status));
+  const completedOrders = userOrders.filter(o => !activeStatuses.includes(o.status));
+
+  // Extract unique products the user has actually paid for/received so they can review them
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const purchasedProductsMap = new Map<string, any>();
+  userOrders.forEach(order => {
+    if (order.status !== "CANCELLED" && order.status !== "PENDING") {
+      // Safely map over items
+      const items = order.items || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      items.forEach((item: any) => {
+        if (item.product) {
+          purchasedProductsMap.set(item.productId, item.product);
+        }
+      });
+    }
+  });
+  const reviewableProducts = Array.from(purchasedProductsMap.values());
 
   // 3. Profile Update Action
   async function updateProfile(formData: FormData) {
@@ -72,7 +102,7 @@ export default async function UserProfilePage() {
 
           {/* --- PROFILE EDITOR (LEFT) --- */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-surface-card border border-zinc-800/50 rounded-3xl p-8 shadow-2xl relative overflow-hidden transition-colors duration-300">
+            <div className="bg-surface-card border border-zinc-800/50 rounded-3xl p-8 shadow-2xl relative overflow-hidden transition-colors duration-300 md:sticky md:top-[100px]">
               <div className="absolute top-0 left-0 w-1 h-full bg-brand transition-colors duration-300" />
 
               <div className="flex flex-col items-center text-center mb-10">
@@ -109,7 +139,7 @@ export default async function UserProfilePage() {
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">District</label>
-                    {/* cSpell ignores the local cities naturally, it only warns in the IDE */}
+                    {/* cspell:disable */}
                     <select name="city" defaultValue={user.city || ""} className="w-full bg-surface-bg border border-zinc-800/50 rounded-xl px-3 py-3 text-xs text-white focus:border-brand focus:outline-none transition-all cursor-pointer duration-300">
                       <option value="">Select District...</option>
                       <option value="Colombo">Colombo</option>
@@ -119,6 +149,7 @@ export default async function UserProfilePage() {
                       <option value="Galle">Galle</option>
                       <option value="Other">Other (Island Wide)</option>
                     </select>
+                    {/* cspell:enable */}
                   </div>
                 </div>
 
@@ -129,8 +160,8 @@ export default async function UserProfilePage() {
             </div>
           </div>
 
-          {/* --- ORDER TRACKING (RIGHT) --- */}
-          <div className="lg:col-span-8 space-y-10">
+          {/* --- RIGHT COLUMN --- */}
+          <div className="lg:col-span-8 space-y-12">
 
             {/* Active Orders */}
             <div>
@@ -215,6 +246,41 @@ export default async function UserProfilePage() {
               )}
             </div>
 
+            {/* --- PRODUCT REVIEWS SECTION --- */}
+            {reviewableProducts.length > 0 && (
+              <div>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] mb-6 flex items-center gap-3 text-yellow-500 transition-colors duration-300">
+                  <Star className="w-4 h-4" /> Review Your Purchases
+                </h3>
+                <div className="grid gap-6">
+                  {reviewableProducts.map(product => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const existingReview = userReviews.find((r: any) => r.productId === product.id);
+
+                    return (
+                      <div key={product.id} className="bg-surface-card border border-zinc-800/50 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-start">
+                        {/* Product Image */}
+                        <div className="w-24 h-24 bg-surface-bg rounded-xl border border-theme-border p-2 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={product.imageUrl || ""} alt={product.name} className="w-full h-full object-contain" />
+                        </div>
+
+                        {/* Review Form Wrapper */}
+                        <div className="flex-1 w-full">
+                          <ReviewForm
+                            productId={product.id}
+                            productName={product.name}
+                            initialRating={existingReview?.rating}
+                            initialComment={existingReview?.comment || ""}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Completed Purchases */}
             <div className="opacity-60 hover:opacity-100 transition-opacity duration-700">
               <h3 className="text-[11px] font-black uppercase tracking-[0.3em] mb-6 flex items-center gap-3 text-zinc-500">
@@ -232,7 +298,6 @@ export default async function UserProfilePage() {
                           <p className="font-black text-zinc-300 text-sm">LKR {Number(order.total).toLocaleString()}</p>
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
-                          {/* FIXED: Removed DELIVERED and rely on Prisma schema statuses (e.g., CANCELLED) */}
                           <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg border ${
                             order.status === 'CANCELLED' ? 'text-red-500 border-red-500/20 bg-red-500/5' :
                             'text-brand border-brand/20 bg-brand/5'

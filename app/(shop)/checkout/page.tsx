@@ -109,57 +109,63 @@ export default function CheckoutPage() {
   if (!mounted || (items.length === 0 && !isSubmitting)) return null;
 
   return (
-    <div className="bg-zinc-950 min-h-screen font-sans text-zinc-50 pb-24">
+    <div className="bg-surface-bg min-h-screen font-sans text-theme-main pb-24 transition-colors duration-300">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold mb-4 uppercase tracking-tight italic">Secure Checkout</h1>
-          <Link href="/login" className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-4 py-1 rounded-md hover:bg-yellow-500 hover:text-black transition-colors uppercase text-[10px] font-black">
+        <div className="mb-8 flex items-center justify-between border-b border-theme-border pb-4 transition-colors duration-300">
+          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight italic">Secure Checkout</h1>
+          <Link href="/login" className="bg-brand/10 text-brand border border-brand/20 px-4 py-1.5 rounded-lg hover:bg-brand hover:text-black transition-colors uppercase text-[10px] md:text-xs font-black shadow-lg shadow-brand/5">
             LOGIN
           </Link>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl">
-              <h2 className="font-black text-xs text-zinc-500 uppercase tracking-widest mb-6">Client Information</h2>
+
+            {/* Client Information */}
+            <div className="bg-surface-card border border-theme-border rounded-xl p-6 shadow-xl transition-colors duration-300">
+              <h2 className="font-black text-xs text-theme-muted uppercase tracking-widest mb-6">Client Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" name="firstName" required placeholder="First Name" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-xs focus:border-yellow-500 outline-none" />
-                <input type="text" name="lastName" required placeholder="Last Name" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-xs focus:border-yellow-500 outline-none" />
-                <input type="tel" name="phone" required placeholder="Phone Number" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-xs focus:border-yellow-500 outline-none" />
-                <input type="email" name="email" required placeholder="Email Address" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-xs focus:border-yellow-500 outline-none" />
+                <input type="text" name="firstName" required placeholder="First Name" className="w-full bg-surface-bg border border-theme-border rounded-lg px-4 py-3 text-xs text-theme-main focus:border-brand outline-none transition-colors duration-300 placeholder:text-theme-muted/50" />
+                <input type="text" name="lastName" required placeholder="Last Name" className="w-full bg-surface-bg border border-theme-border rounded-lg px-4 py-3 text-xs text-theme-main focus:border-brand outline-none transition-colors duration-300 placeholder:text-theme-muted/50" />
+                <input type="tel" name="phone" required placeholder="Phone Number" className="w-full bg-surface-bg border border-theme-border rounded-lg px-4 py-3 text-xs text-theme-main focus:border-brand outline-none transition-colors duration-300 placeholder:text-theme-muted/50" />
+                <input type="email" name="email" required placeholder="Email Address" className="w-full bg-surface-bg border border-theme-border rounded-lg px-4 py-3 text-xs text-theme-main focus:border-brand outline-none transition-colors duration-300 placeholder:text-theme-muted/50" />
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-              <h2 className="font-black text-xs text-zinc-500 uppercase tracking-widest mb-6">Billing Address</h2>
+            {/* Billing Address */}
+            <div className="bg-surface-card border border-theme-border rounded-xl p-6 transition-colors duration-300">
+              <h2 className="font-black text-xs text-theme-muted uppercase tracking-widest mb-6">Billing Address</h2>
               <div className="space-y-4">
-                <input type="text" name="address1" required placeholder="Street Address" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-xs focus:border-yellow-500 outline-none" />
+                <input type="text" name="address1" required placeholder="Street Address" className="w-full bg-surface-bg border border-theme-border rounded-lg px-4 py-3 text-xs text-theme-main focus:border-brand outline-none transition-colors duration-300 placeholder:text-theme-muted/50" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input type="text" name="city" required placeholder="City" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-xs focus:border-yellow-500 outline-none" />
-                  <input type="text" name="postalCode" placeholder="Postal Code" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-xs focus:border-yellow-500 outline-none" />
+                  <input type="text" name="city" required placeholder="City" className="w-full bg-surface-bg border border-theme-border rounded-lg px-4 py-3 text-xs text-theme-main focus:border-brand outline-none transition-colors duration-300 placeholder:text-theme-muted/50" />
+                  <input type="text" name="postalCode" placeholder="Postal Code" className="w-full bg-surface-bg border border-theme-border rounded-lg px-4 py-3 text-xs text-theme-main focus:border-brand outline-none transition-colors duration-300 placeholder:text-theme-muted/50" />
                 </div>
               </div>
-              <div className="mt-6 pt-6 border-t border-zinc-800">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={!deliverToBilling} onChange={() => setDeliverToBilling(!deliverToBilling)} className="accent-yellow-500" />
-                  <span className="text-xs text-zinc-400 font-bold uppercase">Deliver to different address</span>
+              <div className="mt-6 pt-6 border-t border-theme-border transition-colors duration-300">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input type="checkbox" checked={!deliverToBilling} onChange={() => setDeliverToBilling(!deliverToBilling)} className="accent-brand w-4 h-4" />
+                  <span className="text-xs text-theme-muted font-bold uppercase group-hover:text-theme-main transition-colors duration-300">Deliver to different address</span>
                 </label>
               </div>
             </div>
 
-            <div className="bg-zinc-900 border-2 border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
-              <div className="bg-zinc-800/50 px-6 py-4 border-b border-zinc-800 text-[10px] font-black uppercase tracking-widest">Select Payment Method</div>
+            {/* Payment Method */}
+            <div className="bg-surface-card border-2 border-theme-border rounded-xl overflow-hidden shadow-2xl transition-colors duration-300">
+              <div className="bg-surface-bg/50 px-6 py-4 border-b border-theme-border text-[10px] font-black uppercase tracking-widest text-theme-main transition-colors duration-300">Select Payment Method</div>
               <div className="p-6 space-y-4">
                 {(["CARD", "COD", "BANK"] as const).map((method) => (
-                  <label key={method} className={`block border-2 rounded-xl p-4 cursor-pointer transition-all ${paymentMethod === method ? 'border-yellow-500 bg-yellow-500/5' : 'border-zinc-800 bg-zinc-950'}`}>
+                  <label key={method} className={`block border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 ${paymentMethod === method ? 'border-brand bg-brand/5' : 'border-theme-border bg-surface-bg hover:border-brand/30'}`}>
                     <div className="flex items-start gap-3">
-                      <input type="radio" name="payment" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="mt-1 accent-yellow-500" />
+                      <input type="radio" name="payment" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="mt-1 accent-brand w-4 h-4" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold text-xs text-white uppercase">{method === 'CARD' ? 'Credit / Debit' : method === 'COD' ? 'Cash on Delivery' : 'Bank Transfer'}</span>
-                          {method === 'CARD' ? <CreditCard className="w-4 h-4 text-zinc-500" /> : method === 'COD' ? <Banknote className="w-4 h-4 text-zinc-500" /> : <Building className="w-4 h-4 text-zinc-500" />}
+                          <span className={`font-bold text-xs uppercase transition-colors duration-300 ${paymentMethod === method ? 'text-brand' : 'text-theme-main'}`}>
+                            {method === 'CARD' ? 'Credit / Debit' : method === 'COD' ? 'Cash on Delivery' : 'Bank Transfer'}
+                          </span>
+                          {method === 'CARD' ? <CreditCard className="w-4 h-4 text-theme-muted" /> : method === 'COD' ? <Banknote className="w-4 h-4 text-theme-muted" /> : <Building className="w-4 h-4 text-theme-muted" />}
                         </div>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase">{method === 'BANK' ? 'Upload slip after transfer' : 'Standard processing'}</p>
+                        <p className="text-[10px] text-theme-muted font-bold uppercase">{method === 'BANK' ? 'Upload slip after transfer' : 'Standard processing'}</p>
                       </div>
                     </div>
                   </label>
@@ -168,43 +174,46 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {/* Right Sidebar: Order Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-2xl">
-              <h2 className="font-black text-[10px] text-zinc-500 uppercase tracking-widest mb-6 border-b border-zinc-800 pb-4">Order Summary</h2>
-              <div className="space-y-4 mb-6 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800">
+            <div className="sticky top-24 bg-surface-card border border-theme-border rounded-xl p-6 shadow-2xl transition-colors duration-300">
+              <h2 className="font-black text-[10px] text-theme-muted uppercase tracking-widest mb-6 border-b border-theme-border pb-4 transition-colors duration-300">Order Summary</h2>
+
+              <div className="space-y-4 mb-6 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map(item => (
-                  <div key={item.id} className="flex gap-3 text-sm">
-                    <div className="w-10 h-10 bg-black rounded border border-zinc-800 p-1 flex-shrink-0">
+                  <div key={item.id} className="flex gap-3 text-sm group">
+                    <div className="w-10 h-10 bg-surface-bg rounded border border-theme-border p-1 flex-shrink-0 transition-colors duration-300">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={item.imageUrl || ""} alt={item.name} className="w-full h-full object-contain" />
                     </div>
-                    <div className="flex-1 leading-tight">
-                      <p className="font-bold text-zinc-300 line-clamp-1 text-[10px] uppercase">{item.name}</p>
-                      <p className="text-zinc-500 text-[9px] font-black uppercase tracking-widest mt-1">Qty: {item.quantity}</p>
+                    <div className="flex-1 leading-tight min-w-0">
+                      <p className="font-bold text-theme-main line-clamp-1 text-[10px] uppercase transition-colors duration-300">{item.name}</p>
+                      <p className="text-theme-muted text-[9px] font-black uppercase tracking-widest mt-1">Qty: {item.quantity}</p>
                     </div>
-                    <div className="font-black text-yellow-500 text-[10px]">
+                    <div className="font-black text-brand text-[10px] shrink-0 transition-colors duration-300">
                       LKR {(item.price * item.quantity).toLocaleString()}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mb-6 pt-6 border-t border-zinc-800">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-2">Discount Code</label>
+              {/* Voucher Section */}
+              <div className="mb-6 pt-6 border-t border-theme-border transition-colors duration-300">
+                <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest block mb-3">Discount Code</label>
                 {appliedVoucher ? (
-                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-2">
-                    <div className="flex items-center gap-2 text-green-400">
+                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-2 text-green-500">
                       <Tag className="w-4 h-4" />
                       <span className="font-black text-xs uppercase tracking-widest">{appliedVoucher.code}</span>
                     </div>
-                    <button type="button" onClick={handleRemoveVoucher} className="text-green-500 hover:text-green-300">
+                    <button type="button" onClick={handleRemoveVoucher} className="text-green-500 hover:text-green-400 transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <input type="text" value={voucherInput} onChange={(e) => setVoucherInput(e.target.value.toUpperCase())} placeholder="ENTER CODE" className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-xs outline-none focus:border-yellow-500 transition-all uppercase font-bold" />
-                    <button type="button" onClick={handleApplyVoucher} disabled={isApplying || !voucherInput} className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 rounded-lg font-black text-[10px] uppercase tracking-widest transition-colors disabled:opacity-50">
+                    <input type="text" value={voucherInput} onChange={(e) => setVoucherInput(e.target.value.toUpperCase())} placeholder="ENTER CODE" className="flex-1 bg-surface-bg border border-theme-border text-theme-main rounded-lg px-4 py-2 text-xs outline-none focus:border-brand transition-all duration-300 uppercase font-bold placeholder:text-theme-muted/50" />
+                    <button type="button" onClick={handleApplyVoucher} disabled={isApplying || !voucherInput} className="bg-surface-bg border border-theme-border hover:border-brand hover:text-brand text-theme-main px-4 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all duration-300 disabled:opacity-50">
                       {isApplying ? "..." : "Apply"}
                     </button>
                   </div>
@@ -212,10 +221,11 @@ export default function CheckoutPage() {
                 {voucherError && <p className="text-red-500 text-[10px] mt-2 font-black uppercase tracking-tight">{voucherError}</p>}
               </div>
 
-              <div className="space-y-3 pt-4 border-t border-zinc-800">
-                <div className="flex justify-between text-zinc-400 font-bold uppercase text-[10px] tracking-widest">
+              {/* Totals */}
+              <div className="space-y-3 pt-4 border-t border-theme-border transition-colors duration-300">
+                <div className="flex justify-between text-theme-muted font-bold uppercase text-[10px] tracking-widest">
                   <span>Subtotal</span>
-                  <span className="text-zinc-100 font-black">LKR {subtotal.toLocaleString()}</span>
+                  <span className="text-theme-main font-black transition-colors duration-300">LKR {subtotal.toLocaleString()}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-green-500 font-bold uppercase text-[10px] tracking-widest">
@@ -223,14 +233,14 @@ export default function CheckoutPage() {
                     <span className="font-black">-LKR {discountAmount.toLocaleString()}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-end pt-4 border-t border-zinc-800">
-                  <span className="font-black text-xs uppercase tracking-widest text-zinc-500">Total Due</span>
-                  <span className="font-black text-2xl text-yellow-500 italic">LKR {grandTotal.toLocaleString()}</span>
+                <div className="flex justify-between items-end pt-4 border-t border-theme-border transition-colors duration-300">
+                  <span className="font-black text-xs uppercase tracking-widest text-theme-muted">Total Due</span>
+                  <span className="font-black text-2xl text-brand italic transition-colors duration-300">LKR {grandTotal.toLocaleString()}</span>
                 </div>
               </div>
 
-              <button type="submit" disabled={isSubmitting} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-black py-4 rounded-xl mt-8 shadow-lg shadow-yellow-500/10 transition-all active:scale-95 uppercase text-sm tracking-widest disabled:opacity-50">
-                {isSubmitting ? "Processing Order..." : "Confirm & Place Order"}
+              <button type="submit" disabled={isSubmitting} className="w-full bg-brand hover:bg-brand-hover text-black font-black py-4 rounded-xl mt-8 shadow-lg shadow-brand/20 transition-all active:scale-[0.98] uppercase text-xs md:text-sm tracking-widest disabled:opacity-50 duration-300">
+                {isSubmitting ? "Processing..." : "Confirm & Place Order"}
               </button>
             </div>
           </div>

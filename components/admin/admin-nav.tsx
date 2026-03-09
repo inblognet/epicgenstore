@@ -27,7 +27,6 @@ export function AdminNav() {
     { name: "Orders", path: "/admin/orders" },
     { name: "Products", path: "/admin/products" },
     { name: "Categories", path: "/admin/categories" },
-    // --- NEW: Added Tags link ---
     { name: "Tags", path: "/admin/tags" },
     { name: "Vouchers", path: "/admin/vouchers" },
     { name: "Experiences", path: "/admin/customer-experiences" },
@@ -39,14 +38,16 @@ export function AdminNav() {
   const isPagesActive = pathname.includes("/admin/settings/sitepages");
 
   return (
-    <div className="flex gap-6 mb-8 border-b border-theme-border pb-4 overflow-visible relative transition-colors duration-300 scrollbar-hide overflow-x-auto">
+    // FIXED: Removed overflow-x-auto and scrollbar-hide. Added flex-wrap, gap-y-4, and z-50
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-4 mb-8 border-b border-theme-border pb-4 relative z-50 transition-colors duration-300">
       {navLinks.map((link) => {
         const isActive = pathname === link.path;
         return (
           <Link
             key={link.name}
             href={link.path}
-            className={`font-medium transition-colors whitespace-nowrap uppercase text-xs tracking-widest ${
+            // FIXED: Removed whitespace-nowrap so it plays nicely with flex-wrap if needed
+            className={`font-medium transition-colors uppercase text-xs tracking-widest ${
               isActive
                 ? "text-brand font-bold border-b-2 border-brand pb-4 -mb-[18px]"
                 : "text-theme-muted hover:text-brand"
@@ -60,7 +61,7 @@ export function AdminNav() {
       {/* Standard Site Settings Link */}
       <Link
         href="/admin/settings"
-        className={`font-medium transition-colors whitespace-nowrap uppercase text-xs tracking-widest flex items-center gap-1 ${
+        className={`font-medium transition-colors uppercase text-xs tracking-widest flex items-center gap-1 ${
           isSettingsActive
             ? "text-brand font-bold border-b-2 border-brand pb-4 -mb-[18px]"
             : "text-theme-muted hover:text-brand"
@@ -69,10 +70,10 @@ export function AdminNav() {
         <Settings className="w-3.5 h-3.5" /> Core Settings
       </Link>
 
-      {/* NEW: Appearance Link */}
+      {/* Appearance Link */}
       <Link
         href="/admin/settings/appearance"
-        className={`font-medium transition-colors whitespace-nowrap uppercase text-xs tracking-widest flex items-center gap-1 ${
+        className={`font-medium transition-colors uppercase text-xs tracking-widest flex items-center gap-1 ${
           isAppearanceActive
             ? "text-brand font-bold border-b-2 border-brand pb-4 -mb-[18px]"
             : "text-theme-muted hover:text-brand"
@@ -85,7 +86,7 @@ export function AdminNav() {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsPagesOpen(!isPagesOpen)}
-          className={`font-medium transition-colors whitespace-nowrap uppercase text-xs tracking-widest flex items-center gap-1 ${
+          className={`font-medium transition-colors uppercase text-xs tracking-widest flex items-center gap-1 ${
             isPagesActive
               ? "text-brand font-bold border-b-2 border-brand pb-4 -mb-[18px]"
               : "text-theme-muted hover:text-brand"
@@ -95,7 +96,8 @@ export function AdminNav() {
         </button>
 
         {isPagesOpen && (
-          <div className="absolute top-full right-0 mt-2 w-48 bg-surface-card border border-theme-border rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 transition-colors duration-300">
+          // FIXED: Ensured z-[100] is set so it floats over absolutely everything
+          <div className="absolute top-full left-0 md:left-auto md:right-0 mt-2 w-48 bg-surface-card border border-theme-border rounded-xl shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 transition-colors duration-300">
             <Link
               href="/admin/settings/sitepages/servicescenter"
               onClick={() => setIsPagesOpen(false)}

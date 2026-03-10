@@ -8,6 +8,8 @@ import { WishlistButton } from "@/components/client/wishlist-button";
 import { SortDropdown } from "@/components/client/sort-dropdown";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+// 1. NEW: Import the Category Carousel
+import { CategoryCarousel } from "@/components/client/category-carousel";
 
 export default async function ProductsListPage({
   searchParams,
@@ -103,8 +105,13 @@ export default async function ProductsListPage({
     redirect(`/products?${params.toString()}`);
   }
 
+  // 2. NEW: Filter categories to only those with images for the carousel
+  const carouselCategories = categories.filter(c => c.imageUrl !== null);
+
   return (
     <div className="min-h-screen bg-surface-bg text-theme-main py-12 font-sans transition-colors duration-300">
+
+      {/* HEADER SECTION */}
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="text-center mb-8 md:mb-12 border-b border-theme-border pb-6 md:pb-8">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-black mb-3 md:mb-4 tracking-tight">
@@ -114,8 +121,18 @@ export default async function ProductsListPage({
             {isOnSale ? "Epic discounts on enterprise-grade hardware." : "Premium computer hardware tailored for your needs."}
           </p>
         </div>
+      </div>
 
-        {/* EXACT OLD LAYOUT: No extra aside wrappers added here */}
+      {/* 3. NEW: CATEGORY CAROUSEL ADDED HERE */}
+      {/* It only displays if we aren't actively searching so it stays clean */}
+      {carouselCategories.length > 0 && !searchQuery && (
+        <div className="-mt-2">
+          <CategoryCarousel categories={carouselCategories} />
+        </div>
+      )}
+
+      {/* EXACT OLD LAYOUT RESTORED: Your wrapper, filters, and grid remain 100% untouched */}
+      <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
 
           <ProductFilters categories={categories} />
@@ -157,7 +174,6 @@ export default async function ProductsListPage({
                  <p className="text-theme-muted font-medium transition-colors duration-300">No products match your current filters.</p>
                </div>
             ) : (
-              // UPDATED GRID ONLY: Added items-stretch for the tall cards
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 items-stretch">
                 {products.map((product) => {
                   // Card Data Prep

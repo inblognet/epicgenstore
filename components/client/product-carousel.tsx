@@ -14,7 +14,7 @@ interface CarouselProduct {
   price: number | string;
   salePrice: number | string | null;
   imageUrl: string | null;
-  images?: string[]; // NEW: Added to support the secondary hover image
+  images?: string[];
   stock: number;
   onSale: boolean;
   category: { name: string } | null;
@@ -28,48 +28,104 @@ interface ProductCarouselProps {
 }
 
 export function ProductCarousel({ title, categorySlug, products, wishlistedIds }: ProductCarouselProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number | null>(null);
 
-  // State to track if the user is hovering over the carousel
-  const [isHovered, setIsHovered] = useState(false);
+  // Interaction refs (keeps the animation loop up to date)
+  const isHovered = useRef(false);
+  const isDragging = useRef(false);
 
-  const scroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      const scrollAmount = 344; // Approx width of one card + gap
+  // UI state for cursor changes
+  const [dragActive, setDragActive] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const dragDistance = useRef(0);
 
-      // If scrolling right and we reached the end, loop back to the start
-      if (direction === "right" && scrollLeft + clientWidth >= scrollWidth - 10) {
-        scrollContainerRef.current.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        // Otherwise, scroll normally
-        const actualScrollAmount = direction === "left" ? -scrollAmount : scrollAmount;
-        scrollContainerRef.current.scrollBy({ left: actualScrollAmount, behavior: "smooth" });
+  // Duplicate products for infinite looping
+  // If there are very few products, we duplicate them more times so the container is wide enough
+  const loopCount = products.length < 4 ? 6 : 3;
+  const displayProducts = Array(loopCount).fill(products).flat();
+
+  // --- CONTINUOUS SMOOTH SCROLL LOGIC ---
+  useEffect(() => {
+    // If there aren't enough products to warrant scrolling, don't animate
+    if (products.length < 2) return;
+
+    const playAnimation = () => {
+      if (scrollRef.current && !isHovered.current && !isDragging.current) {
+        // Scroll speed (adjust this to make it faster/slower)
+        scrollRef.current.scrollLeft += 0.8;
+
+        // Infinite loop trick: reset when we've scrolled exactly one original set's width
+        const scrollWidth = scrollRef.current.scrollWidth;
+        const resetPoint = scrollWidth / loopCount;
+
+        if (scrollRef.current.scrollLeft >= resetPoint) {
+          scrollRef.current.scrollLeft -= resetPoint;
+        }
       }
+      animationRef.current = requestAnimationFrame(playAnimation);
+    };
+
+    animationRef.current = requestAnimationFrame(playAnimation);
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [products.length, loopCount]);
+
+  // --- ARROW BUTTON SCROLLING ---
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = 300; // Width of one card + gap
+      const newScrollLeft = direction === "left"
+        ? scrollRef.current.scrollLeft - scrollAmount
+        : scrollRef.current.scrollLeft + scrollAmount;
+
+      scrollRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
     }
   };
 
-  // Auto-scroll effect
-  useEffect(() => {
-    // If the user is hovering, don't auto-scroll
-    if (isHovered) return;
+  // --- MOUSE DRAG LOGIC ---
+  const handleMouseEnter = () => { isHovered.current = true; };
 
-    // Scroll to the right every 4 seconds (4000 milliseconds)
-    const interval = setInterval(() => {
-      scroll("right");
-    }, 4000);
+  const handleMouseLeave = () => {
+    isHovered.current = false;
+    isDragging.current = false;
+    setDragActive(false);
+  };
 
-    // Clean up the timer when the component unmounts or hover state changes
-    return () => clearInterval(interval);
-  }, [isHovered]);
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDragging.current = true;
+    setDragActive(true);
+    dragDistance.current = 0;
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    setDragActive(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+
+    dragDistance.current = Math.abs(walk);
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
 
   if (products.length === 0) return null;
 
   return (
     <div
       className="mb-16"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* HEADER SECTION */}
       <div className="flex items-center justify-between bg-surface-card border border-theme-border rounded-t-2xl px-6 py-4 transition-colors duration-300">
@@ -85,7 +141,7 @@ export function ProductCarousel({ title, categorySlug, products, wishlistedIds }
       </div>
 
       {/* CAROUSEL WRAPPER */}
-      <div className="relative bg-surface-bg border-x border-b border-theme-border rounded-b-2xl p-6 transition-colors duration-300">
+      <div className="relative bg-surface-bg border-x border-b border-theme-border rounded-b-2xl p-6 transition-colors duration-300 overflow-hidden">
 
         {/* Left Arrow */}
         <button
@@ -95,50 +151,64 @@ export function ProductCarousel({ title, categorySlug, products, wishlistedIds }
           <ChevronLeft className="w-6 h-6" />
         </button>
 
-        {/* Scrollable Container */}
+        {/* Scrollable Container (Removed snap-x for smooth auto-scrolling) */}
         <div
-          ref={scrollContainerRef}
-          className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory pb-4 pt-2 px-2 items-stretch"
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          onTouchStart={() => { isHovered.current = true; }}
+          onTouchEnd={() => { isHovered.current = false; }}
+          className={`flex gap-4 md:gap-6 overflow-x-auto pb-4 pt-2 px-2 items-stretch transition-all duration-300 ${
+            dragActive ? 'cursor-grabbing select-none' : 'cursor-grab'
+          }`}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           <style dangerouslySetInnerHTML={{__html: `::-webkit-scrollbar { display: none; }`}} />
 
-          {products.map((product) => {
+          {displayProducts.map((product, index) => {
             const hasHoverImage = product.images && product.images.length > 0;
             const hoverImageUrl = hasHoverImage ? product.images![0] : null;
             const activePrice = product.onSale && product.salePrice ? Number(product.salePrice) : Number(product.price);
             const installmentPrice = (activePrice / 3).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
             return (
-              // UPGRADED: Transparent, tall card matching the new style
-              <div key={product.id} className="min-w-[240px] max-w-[240px] md:min-w-[280px] md:max-w-[280px] snap-start shrink-0 bg-transparent border border-theme-border rounded-2xl overflow-hidden hover:border-brand/50 transition-all group flex flex-col shadow-sm hover:shadow-xl duration-300 h-auto">
-
-                {/* UPGRADED: aspect-[4/5] and transparent bg */}
-                <div className="relative aspect-[4/5] bg-transparent overflow-hidden border-b border-theme-border transition-colors duration-300 group/img shrink-0">
-                  <Link href={`/product/${product.slug}`} className="absolute inset-0 p-4 md:p-6 flex items-center justify-center z-0">
-                    {product.imageUrl ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div
+                key={`${product.id}-${index}`}
+                className="min-w-[240px] max-w-[240px] md:min-w-[280px] md:max-w-[280px] shrink-0 bg-transparent border border-theme-border rounded-2xl overflow-hidden hover:border-brand/50 transition-all group flex flex-col shadow-sm hover:shadow-xl duration-300 h-auto"
+              >
+                <Link
+                  href={`/product/${product.slug}`}
+                  draggable={false}
+                  onClick={(e) => {
+                    if (dragDistance.current > 10) e.preventDefault();
+                  }}
+                  className="block relative aspect-[4/5] bg-transparent overflow-hidden border-b border-theme-border transition-colors duration-300 group/img shrink-0"
+                >
+                  {product.imageUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        draggable={false}
+                        className={`w-full h-full object-contain transform group-hover/img:scale-110 transition-transform duration-500 drop-shadow-md ${
+                          hasHoverImage ? 'group-hover/img:opacity-0' : ''
+                        }`}
+                      />
+                      {hasHoverImage && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          className={`w-full h-full object-contain transform group-hover/img:scale-110 transition-transform duration-500 drop-shadow-md ${
-                            hasHoverImage ? 'group-hover/img:opacity-0' : ''
-                          }`}
+                          src={hoverImageUrl!}
+                          alt={`${product.name} alternate view`}
+                          draggable={false}
+                          className="absolute inset-0 p-4 md:p-6 object-contain w-full h-full transform scale-95 opacity-0 group-hover/img:scale-110 group-hover/img:opacity-100 transition-all duration-500 drop-shadow-md"
                         />
-                        {hasHoverImage && (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={hoverImageUrl!}
-                            alt={`${product.name} alternate view`}
-                            className="absolute inset-0 p-4 md:p-6 object-contain w-full h-full transform scale-95 opacity-0 group-hover/img:scale-110 group-hover/img:opacity-100 transition-all duration-500 drop-shadow-md"
-                          />
-                        )}
-                      </>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-theme-muted text-[10px] md:text-sm font-black tracking-widest uppercase text-center absolute inset-0">No Image</div>
-                    )}
-                  </Link>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-theme-muted text-[10px] md:text-sm font-black tracking-widest uppercase text-center absolute inset-0">No Image</div>
+                  )}
 
                   <div className="absolute top-2 left-2 md:top-4 md:left-4 flex flex-col gap-1 md:gap-2 z-10 pointer-events-none">
                     {product.stock > 0 ? (
@@ -160,21 +230,28 @@ export function ProductCarousel({ title, categorySlug, products, wishlistedIds }
                       initialIsWishlisted={wishlistedIds.includes(product.id)}
                     />
                   </div>
-                </div>
+                </Link>
 
                 <div className="p-4 md:p-5 flex flex-col flex-grow z-10 bg-transparent transition-colors duration-300">
                   {product.category && (
-                    <span className="text-[8px] md:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1 md:mb-2 truncate transition-colors duration-300">
+                    <span className="text-[8px] md:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1 md:mb-2 truncate transition-colors duration-300 pointer-events-none">
                       {product.category.name}
                     </span>
                   )}
 
-                  <Link href={`/product/${product.slug}`} className="hover:text-brand transition-colors duration-300">
+                  <Link
+                    href={`/product/${product.slug}`}
+                    draggable={false}
+                    onClick={(e) => {
+                      if (dragDistance.current > 10) e.preventDefault();
+                    }}
+                    className="hover:text-brand transition-colors duration-300"
+                  >
                     <h3 className="font-bold text-[11px] md:text-sm leading-snug line-clamp-2 mb-2 text-theme-main uppercase tracking-wide transition-colors duration-300">{product.name}</h3>
                   </Link>
 
                   {/* Mock Rating */}
-                  <div className="flex items-center gap-1.5 mb-3 md:mb-4">
+                  <div className="flex items-center gap-1.5 mb-3 md:mb-4 pointer-events-none">
                     <div className="flex text-theme-muted/50 text-[10px] tracking-widest">
                       ★★★★★
                     </div>
@@ -182,9 +259,7 @@ export function ProductCarousel({ title, categorySlug, products, wishlistedIds }
                   </div>
 
                   <div className="mt-auto flex flex-col gap-3">
-
-                    {/* Horizontal Layout for Price and Add to Cart Button */}
-                    <div className="flex items-end justify-between gap-2">
+                    <div className="flex items-end justify-between gap-2 pointer-events-none">
                       <div className="font-black text-sm md:text-lg text-theme-main transition-colors duration-300 leading-none">
                         <span className="text-[9px] md:text-[10px] text-theme-muted block mb-1 tracking-widest uppercase font-bold">LKR</span>
                         {product.onSale && product.salePrice ? (
@@ -197,7 +272,7 @@ export function ProductCarousel({ title, categorySlug, products, wishlistedIds }
                         )}
                       </div>
 
-                      <div className="shrink-0 mt-1 md:mt-0">
+                      <div className="shrink-0 mt-1 md:mt-0 pointer-events-auto">
                         <AddToCartButton product={{
                           id: product.id,
                           name: product.name,
@@ -208,8 +283,7 @@ export function ProductCarousel({ title, categorySlug, products, wishlistedIds }
                       </div>
                     </div>
 
-                    {/* Installment Text Mockup */}
-                    <div className="text-[8px] md:text-[10px] text-theme-muted font-medium mt-1">
+                    <div className="text-[8px] md:text-[10px] text-theme-muted font-medium mt-1 pointer-events-none">
                       or 3 X <span className="font-bold text-theme-main">LKR {installmentPrice}</span> with <span className="text-[#a855f7] font-black italic tracking-wider">KOKO</span>
                     </div>
 

@@ -7,7 +7,7 @@ import { Save, FolderTree } from "lucide-react";
 import { ProductImageManager } from "@/components/admin/product-image-manager";
 import { MainImageUploader } from "@/components/admin/main-image-uploader";
 import { useAdminLoader } from "@/components/admin/admin-loading-provider";
-import { Product, Category, Tag } from "@prisma/client"; // 🚀 Import strict types!
+import { Product, Category, Tag } from "@prisma/client";
 
 // Use the exact Prisma types for perfect type safety
 interface EditProductFormProps {
@@ -24,7 +24,12 @@ export function EditProductForm({ product, categories, tags, updateProductAction
   const router = useRouter();
   const { startLoading, stopLoading } = useAdminLoader();
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    // Grab the data from the HTML form
+    const formData = new FormData(e.currentTarget);
+
     startLoading("Updating Product...");
 
     try {
@@ -44,7 +49,7 @@ export function EditProductForm({ product, categories, tags, updateProductAction
   };
 
   return (
-    <form action={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-6">
         <div className="space-y-2">
           <label htmlFor="name" className="text-xs font-black text-zinc-400 uppercase tracking-widest">Product Name *</label>

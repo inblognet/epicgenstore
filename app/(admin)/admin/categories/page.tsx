@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Trash2, FolderTree, Edit, CornerDownRight, Image as ImageIcon } from "lucide-react";
+import { FolderTree, Edit, CornerDownRight, Image as ImageIcon } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { AdminNav } from "@/components/admin/admin-nav";
-import { redis } from "@/lib/redis"; // 🚀 Import Redis!
-import { CategoryForm } from "./CategoryForm"; // 🚀 Import our new form
+import { redis } from "@/lib/redis";
+import { CategoryForm } from "./CategoryForm";
+import { DeleteButton } from "@/components/admin/delete-button"; // 🚀 Import Universal Delete Button
 
 export default async function AdminCategoriesPage({
   searchParams,
@@ -75,7 +76,6 @@ export default async function AdminCategoriesPage({
         },
       });
 
-      // 🚀 CLEAR REDIS CACHE
       await redis.del("epicgenstore:categories:filters");
       await redis.del("epicgenstore:homepage:data");
 
@@ -119,7 +119,6 @@ export default async function AdminCategoriesPage({
         },
       });
 
-      // 🚀 CLEAR REDIS CACHE
       await redis.del("epicgenstore:categories:filters");
       await redis.del("epicgenstore:homepage:data");
 
@@ -137,18 +136,31 @@ export default async function AdminCategoriesPage({
   async function deleteCategory(id: string) {
     "use server";
     const currentSession = await auth();
-    if (currentSession?.user?.role !== "ADMIN") throw new Error("Unauthorized");
+    if (currentSession?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
-    await prisma.category.delete({ where: { id } });
+    let needsRedirect = false;
 
-    // 🚀 CLEAR REDIS CACHE
-    await redis.del("epicgenstore:categories:filters");
-    await redis.del("epicgenstore:homepage:data");
+    try {
+      await prisma.category.delete({ where: { id } });
 
-    revalidatePath("/");
-    revalidatePath("/products");
-    revalidatePath("/admin/categories");
-    if (id === editId) redirect("/admin/categories");
+      await redis.del("epicgenstore:categories:filters");
+      await redis.del("epicgenstore:homepage:data");
+
+      revalidatePath("/");
+      revalidatePath("/products");
+      revalidatePath("/admin/categories");
+
+      if (id === editId) needsRedirect = true;
+    } catch (error) {
+      console.error(error);
+      // Prisma throws an error if you try to delete a category that still has products connected!
+      return { success: false, error: "Failed to delete category. Ensure no products are attached to it." };
+    }
+
+    // Safely redirect outside the try/catch block
+    if (needsRedirect) redirect("/admin/categories");
+
+    return { success: true };
   }
 
   return (
@@ -230,11 +242,13 @@ export default async function AdminCategoriesPage({
                             <Edit className="h-4 w-4" />
                           </Link>
                         </Button>
-                        <form action={deleteCategory.bind(null, category.id)}>
-                          <Button type="submit" variant="outline" size="icon" className="border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors duration-300">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </form>
+
+                        {/* 🚀 NEW INTELLIGENT DELETE BUTTON */}
+                        <DeleteButton
+                          id={category.id}
+                          itemName="Category"
+                          deleteAction={deleteCategory}
+                        />
                       </div>
                     </td>
                   </tr>

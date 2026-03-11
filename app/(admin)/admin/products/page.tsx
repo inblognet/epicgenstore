@@ -1,13 +1,16 @@
 // app/(admin)/admin/products/page.tsx
+// cspell:ignore epicgenstore
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, PackageSearch } from "lucide-react";
+import { Plus, Edit, PackageSearch } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { PromoToggle } from "@/components/admin/promo-toggle";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { DeleteButton } from "@/components/admin/delete-button"; // 🚀 Import Universal Delete Button
+import { redis } from "@/lib/redis"; // 🚀 Import Redis!
 
 // FORCE DYNAMIC: Ensures the admin dashboard always pulls fresh data from the database
 export const dynamic = "force-dynamic";
@@ -22,17 +25,41 @@ export default async function AdminProductsPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  // 🚀 UPDATED: Secure, cache-clearing Server Action
   const deleteProduct = async (id: string) => {
     "use server";
     const currentSession = await auth();
-    if (currentSession?.user?.role !== "ADMIN") throw new Error("Unauthorized");
+    if (currentSession?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
-    await prisma.product.delete({
-      where: { id },
-    });
+    try {
+      // 1. Fetch the product first so we know its slug to clear the cache!
+      const productToDelete = await prisma.product.findUnique({
+        where: { id },
+        select: { slug: true }
+      });
 
-    revalidatePath("/admin/products");
-    revalidatePath("/products");
+      // 2. Delete it from the database
+      await prisma.product.delete({
+        where: { id },
+      });
+
+      // 3. 🚀 CLEAR REDIS CACHES
+      await redis.del("epicgenstore:homepage:data");
+      await redis.del("epicgenstore:categories:filters");
+      if (productToDelete?.slug) {
+        await redis.del(`epicgenstore:product:${productToDelete.slug}`);
+      }
+
+      // 4. Tell Next.js to refresh
+      revalidatePath("/admin/products");
+      revalidatePath("/products");
+      revalidatePath("/");
+
+      return { success: true };
+    } catch (error) {
+      console.error(error);
+      return { success: false, error: "Failed to delete product. It might have orders attached to it." };
+    }
   };
 
   return (
@@ -42,11 +69,9 @@ export default async function AdminProductsPage() {
 
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3">
-          {/* REPLACED: text-yellow-500 -> text-brand */}
           <PackageSearch className="h-8 w-8 text-brand transition-colors duration-300" />
           Product Manager
         </h1>
-        {/* REPLACED: bg-yellow-500 hover:bg-yellow-600 -> bg-brand hover:bg-brand-hover */}
         <Button asChild className="bg-brand hover:bg-brand-hover text-black font-bold transition-all duration-300 active:scale-95 shadow-lg shadow-brand/20">
           <Link href="/admin/products/new">
             <Plus className="mr-2 h-4 w-4" /> Add Product
@@ -54,10 +79,8 @@ export default async function AdminProductsPage() {
         </Button>
       </div>
 
-      {/* REPLACED: bg-zinc-900 border-zinc-800 -> bg-surface-card border-zinc-800/50 */}
       <div className="bg-surface-card border border-zinc-800/50 rounded-xl overflow-x-auto shadow-lg transition-colors duration-300">
         <table className="w-full text-sm text-left text-zinc-300">
-          {/* REPLACED: bg-zinc-950/50 border-zinc-800 -> bg-surface-bg/50 border-zinc-800/50 */}
           <thead className="bg-surface-bg/50 border-b border-zinc-800/50 text-zinc-400 uppercase text-xs font-semibold transition-colors duration-300">
             <tr>
               <th className="px-6 py-4">Image</th>
@@ -70,11 +93,9 @@ export default async function AdminProductsPage() {
           </thead>
           <tbody className="divide-y divide-zinc-800/50">
             {products.map((product) => (
-              // REPLACED: hover:bg-zinc-800/50 -> hover:bg-surface-bg/50
               <tr key={product.id} className="hover:bg-surface-bg/50 transition-colors duration-300">
 
                 <td className="px-6 py-4">
-                  {/* REPLACED: bg-zinc-950 border-zinc-800 -> bg-surface-bg border-zinc-800/50 */}
                   <div className="w-12 h-12 rounded bg-surface-bg border border-zinc-800/50 overflow-hidden flex-shrink-0 p-1 transition-colors duration-300">
                     {product.imageUrl ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -91,7 +112,6 @@ export default async function AdminProductsPage() {
 
                 <td className="px-6 py-4">
                   <div className="flex flex-col">
-                    {/* REPLACED: text-yellow-500 -> text-brand */}
                     <span className={`font-black transition-colors duration-300 ${product.onSale ? 'text-zinc-500 line-through text-xs' : 'text-brand'}`}>
                       LKR {Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
@@ -123,17 +143,19 @@ export default async function AdminProductsPage() {
 
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
-                    {/* REPLACED: hover:bg-zinc-800 -> hover:bg-surface-bg */}
                     <Button variant="outline" size="icon" asChild className="border-zinc-700 bg-transparent text-zinc-300 hover:bg-surface-bg hover:text-white transition-colors duration-300">
                       <Link href={`/admin/products/${product.id}/edit`}>
                         <Edit className="h-4 w-4" />
                       </Link>
                     </Button>
-                    <form action={deleteProduct.bind(null, product.id)}>
-                      <Button type="submit" variant="outline" size="icon" className="border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </form>
+
+                    {/* 🚀 REPLACED THE OLD HTML FORM WITH OUR NEW UNIVERSAL COMPONENT */}
+                    <DeleteButton
+                      id={product.id}
+                      itemName="Product"
+                      deleteAction={deleteProduct}
+                    />
+
                   </div>
                 </td>
 

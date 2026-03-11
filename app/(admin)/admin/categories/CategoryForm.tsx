@@ -23,8 +23,11 @@ export function CategoryForm({
 
   const { startLoading, stopLoading } = useAdminLoader();
 
-  // Our custom handler that wraps the Server Actions
-  const handleSubmit = async (formData: FormData) => {
+  // 🚀 This function MUST trigger on standard 'onSubmit', not 'action'
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // This is the magic line that stops React from hiding our loader!
+    const formData = new FormData(e.currentTarget);
+
     if (editingCategory) {
       startLoading("Updating Category...");
       try {
@@ -40,7 +43,6 @@ export function CategoryForm({
       try {
         const result = await createCategoryAction(formData);
         if (!result.success) alert(result.error);
-        // We let the Server Action handle the revalidation/clearing form
       } catch (error) {
         alert("An error occurred.");
       } finally {
@@ -56,8 +58,8 @@ export function CategoryForm({
         {editingCategory ? "Edit Category" : "Add New Category"}
       </h2>
 
-      {/* Note: We use our custom handleSubmit instead of the raw action */}
-      <form action={handleSubmit} className="space-y-4">
+      {/* 🚀 Ensure this says onSubmit={onSubmit} and NOT action */}
+      <form onSubmit={onSubmit} className="space-y-4">
         {editingCategory && <input type="hidden" name="id" value={editingCategory.id} />}
 
         <div className="space-y-2">
@@ -92,7 +94,6 @@ export function CategoryForm({
         <div className="space-y-2">
           <label htmlFor="imageUrl" className="text-sm font-medium text-zinc-300">Image URL (Optional)</label>
           <input type="text" id="imageUrl" name="imageUrl" defaultValue={editingCategory?.imageUrl || ""} placeholder="https://example.com/image.jpg" className="flex h-10 w-full rounded-md border border-zinc-800 bg-surface-bg px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand transition-all duration-300" />
-          <p className="text-[10px] text-zinc-500">Required if you want this category to show on the Home Page carousel.</p>
         </div>
 
         <div className="space-y-2">

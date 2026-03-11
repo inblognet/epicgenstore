@@ -39,7 +39,12 @@ export default async function ProductsListPage({
   const resolvedParams = await searchParams;
 
   const categoryParam = typeof resolvedParams.category === "string" ? resolvedParams.category : "";
-  const activeCategorySlugs = categoryParam ? categoryParam.split(",") : [];
+
+  // 🚀 FIXED: We strip "all" right here so it NEVER hits the database query!
+  const activeCategorySlugs = categoryParam
+    ? categoryParam.split(",").filter(c => c !== "all")
+    : [];
+
   const tagParam = typeof resolvedParams.tag === "string" ? resolvedParams.tag : "";
   const selectedTagIds = tagParam ? tagParam.split(",") : [];
   const searchQuery = typeof resolvedParams.search === "string" ? resolvedParams.search : "";
@@ -52,7 +57,8 @@ export default async function ProductsListPage({
   const whereClause: Prisma.ProductWhereInput = {};
   const andConditions: Prisma.ProductWhereInput[] = [];
 
-  if (activeCategorySlugs.length > 0 && !activeCategorySlugs.includes("all")) {
+  // 🚀 FIXED: We no longer need to check for "all" here because we stripped it above
+  if (activeCategorySlugs.length > 0) {
     andConditions.push({ categories: { some: { slug: { in: activeCategorySlugs } } } });
   }
 
@@ -119,6 +125,28 @@ export default async function ProductsListPage({
 
   const products = fetchedProducts as StoreProductList[];
 
+  // ==========================================
+  // 🚀 NEW DYNAMIC PRICE BOUNDARY CALCULATION
+  // ==========================================
+  let dynamicMinBoundary = 0;
+  let dynamicMaxBoundary = 1000000; // Fallback max if no products exist
+
+  if (products.length > 0) {
+    const effectivePrices = products.map(p =>
+      (p.onSale && p.salePrice) ? Number(p.salePrice) : Number(p.price)
+    );
+
+    dynamicMinBoundary = Math.floor(Math.min(...effectivePrices));
+    dynamicMaxBoundary = Math.ceil(Math.max(...effectivePrices));
+
+    // Prevent slider crash if all products cost the exact same amount
+    if (dynamicMinBoundary === dynamicMaxBoundary) {
+      dynamicMinBoundary = Math.max(0, dynamicMinBoundary - 100);
+      dynamicMaxBoundary = dynamicMaxBoundary + 100;
+    }
+  }
+  // ==========================================
+
   let wishlistedIds: string[] = [];
   if (session?.user?.id) {
     const userWishlist = await prisma.wishlistItem.findMany({
@@ -173,8 +201,12 @@ export default async function ProductsListPage({
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
 
-          {/* EXACT OLD LAYOUT RESTORED: No extra wrappers! */}
-          <ProductFilters categories={categories} />
+          {/* 🚀 FIXED: Passed dynamic boundaries down to the filter component */}
+          <ProductFilters
+            categories={categories}
+            resultMinBoundary={dynamicMinBoundary}
+            resultMaxBoundary={dynamicMaxBoundary}
+          />
 
           <main className="flex-1 w-full">
             <ScrollAnimate animation="fade-in" delay={200} className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-surface-card/50 p-4 rounded-xl border border-theme-border transition-colors duration-300">

@@ -115,12 +115,13 @@ export default async function AdminCarouselsPage({
 
       <div className="flex items-center gap-3 mb-8">
         <LayoutTemplate className="h-8 w-8 text-brand" />
-        <h1 className="text-3xl font-extrabold tracking-tight">Page Carousel Manager</h1>
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Page Carousel Manager</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* CREATE / EDIT FORM */}
-        <div className="lg:col-span-1 sticky top-8 space-y-6">
+        {/* 🚀 FIXED: Added lg: before sticky and top-8 so it only sticks on desktop! */}
+        <div className="lg:col-span-1 lg:sticky lg:top-8 space-y-6">
           <form
             action={editCarousel ? updateCarousel : createCarousel}
             className={`border rounded-3xl p-6 shadow-xl flex flex-col gap-6 transition-all duration-300 ${
@@ -240,7 +241,7 @@ export default async function AdminCarouselsPage({
 
         {/* EXISTING CAROUSELS LIST */}
         <div className="lg:col-span-2">
-          <div className="bg-surface-card border border-theme-border rounded-3xl p-6 shadow-xl">
+          <div className="bg-surface-card border border-theme-border rounded-3xl p-4 md:p-6 shadow-xl">
             <h2 className="text-xl font-bold mb-6">Manage Sections</h2>
 
             {carousels.length === 0 ? (
@@ -252,11 +253,11 @@ export default async function AdminCarouselsPage({
                 {carousels.map((carousel) => (
                   <div
                     key={carousel.id}
-                    className={`flex items-center justify-between p-5 bg-surface-bg border border-theme-border rounded-xl transition-all ${
+                    className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-5 gap-4 bg-surface-bg border border-theme-border rounded-xl transition-all ${
                       !carousel.isVisible ? "opacity-60 grayscale" : ""
                     } ${editCarousel?.id === carousel.id ? "ring-2 ring-brand" : ""}`}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
                       {carousel.imageUrl ? (
                         <div className="w-12 h-16 bg-surface-card rounded border border-theme-border overflow-hidden shrink-0">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -269,13 +270,13 @@ export default async function AdminCarouselsPage({
                       )}
 
                       <div className="flex flex-col">
-                        <span className="font-bold text-lg leading-none mb-1.5">{carousel.title}</span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] bg-surface-card border border-theme-border px-2 py-0.5 rounded text-theme-muted uppercase tracking-widest">
+                        <span className="font-bold text-lg leading-none mb-1.5 break-all line-clamp-1">{carousel.title}</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] bg-surface-card border border-theme-border px-2 py-0.5 rounded text-theme-muted uppercase tracking-widest line-clamp-1">
                             {carousel.category ? `Category: ${carousel.category.name}` : "NO CATEGORY"}
                           </span>
                           {carousel.imageUrl && (
-                            <span className="text-[10px] bg-brand/10 border border-brand/20 text-brand px-2 py-0.5 rounded uppercase tracking-widest">
+                            <span className="text-[10px] bg-brand/10 border border-brand/20 text-brand px-2 py-0.5 rounded uppercase tracking-widest whitespace-nowrap">
                               Mixed Layout
                             </span>
                           )}
@@ -283,7 +284,7 @@ export default async function AdminCarouselsPage({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 self-end md:self-auto w-full md:w-auto justify-end border-t md:border-none border-theme-border pt-3 md:pt-0 mt-1 md:mt-0">
                       {/* EDIT */}
                       <Link
                         href={`/admin/carousels?edit=${carousel.id}`}

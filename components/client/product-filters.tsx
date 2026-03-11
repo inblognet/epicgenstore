@@ -2,8 +2,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-// FIXED: Imported useRef
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { getDynamicTags } from "@/lib/actions/tags";
 
 interface Category {
@@ -22,43 +21,54 @@ interface Tag {
   _count: { products: number };
 }
 
-const SLIDER_MAX = 500000;
+// 🚀 FIXED: Added the dynamic boundary props interface
+interface ProductFiltersProps {
+  categories: Category[];
+  resultMinBoundary: number;
+  resultMaxBoundary: number;
+}
 
-export function ProductFilters({ categories }: { categories: Category[] }) {
+export function ProductFilters({
+  categories,
+  resultMinBoundary,
+  resultMaxBoundary
+}: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
-  const activeCategories = searchParams.get("category")?.split(",") || [];
-  const activeTags = searchParams.get("tag")?.split(",") || [];
+  const urlCategories = searchParams.get("category")?.split(",").filter(Boolean) || [];
+  const urlTags = searchParams.get("tag")?.split(",").filter(Boolean) || [];
   const urlMin = searchParams.get("minPrice") || "";
   const urlMax = searchParams.get("maxPrice") || "";
   const searchQuery = searchParams.get("search") || "";
 
+  const [localCategories, setLocalCategories] = useState<string[]>(urlCategories);
+  const [localTags, setLocalTags] = useState<string[]>(urlTags);
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [localMin, setLocalMin] = useState(urlMin);
   const [localMax, setLocalMax] = useState(urlMax);
 
-  // --- FIXED: Ref to track what we just pushed to the URL so we don't overwrite the user's active typing ---
   const lastPushed = useRef({ search: searchQuery, min: urlMin, max: urlMax });
-
   const [dynamicTags, setDynamicTags] = useState<Tag[]>([]);
 
   useEffect(() => {
     async function fetchContextualTags() {
-      if (activeCategories.length > 0) {
-        const tags = await getDynamicTags(activeCategories);
+      if (urlCategories.length > 0) {
+        const tags = await getDynamicTags(urlCategories);
         setDynamicTags(tags);
       } else {
         setDynamicTags([]);
       }
     }
-
     fetchContextualTags();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get("category")]);
 
-  // --- FIXED: Only sync URL changes to local state if they changed externally (e.g. Browser Back Button) ---
   useEffect(() => {
+    setLocalCategories(urlCategories);
+    setLocalTags(urlTags);
+
     if (urlMin !== lastPushed.current.min) {
       setLocalMin(urlMin);
       lastPushed.current.min = urlMin;
@@ -71,7 +81,8 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
       setLocalSearch(searchQuery);
       lastPushed.current.search = searchQuery;
     }
-  }, [urlMin, urlMax, searchQuery]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const updateFilters = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -79,29 +90,33 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
       if (value) params.set(key, value);
       else params.delete(key);
     });
-    router.push(`/products?${params.toString()}`, { scroll: false });
+
+    startTransition(() => {
+      router.push(`/products?${params.toString()}`, { scroll: false });
+    });
   };
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (localSearch !== searchQuery) {
-        // Mark this value as "pushed" so the sync effect above ignores it!
         lastPushed.current.search = localSearch;
         updateFilters({ search: localSearch || null });
       }
     }, 400);
-
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSearch]);
 
   const toggleCategory = (slug: string) => {
-    let newCategories = [...activeCategories];
+    let newCategories = localCategories.filter(c => c !== "all");
+
     if (newCategories.includes(slug)) {
       newCategories = newCategories.filter((c) => c !== slug);
     } else {
       newCategories.push(slug);
     }
+    setLocalCategories(newCategories);
+
     updateFilters({
       category: newCategories.length > 0 ? newCategories.join(",") : null,
       tag: null
@@ -109,12 +124,14 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
   };
 
   const toggleTag = (slug: string) => {
-    let newTags = [...activeTags];
+    let newTags = [...localTags];
     if (newTags.includes(slug)) {
       newTags = newTags.filter((t) => t !== slug);
     } else {
       newTags.push(slug);
     }
+    setLocalTags(newTags);
+
     updateFilters({ tag: newTags.length > 0 ? newTags.join(",") : null });
   };
 
@@ -128,14 +145,28 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
     setLocalSearch("");
     setLocalMin("");
     setLocalMax("");
+    setLocalCategories([]);
+    setLocalTags([]);
     lastPushed.current = { search: "", min: "", max: "" };
-    router.push("/products", { scroll: false });
+
+    startTransition(() => {
+      router.push("/products", { scroll: false });
+    });
   };
 
-  const minVal = Number(localMin) || 0;
-  const maxVal = localMax ? Number(localMax) : SLIDER_MAX;
-  const leftPercent = Math.min(100, Math.max(0, (minVal / SLIDER_MAX) * 100));
-  const rightPercent = Math.min(100, Math.max(0, 100 - (maxVal / SLIDER_MAX) * 100));
+  // 🚀 FIXED: Dynamic UI state normalization based on server boundaries
+  const minDisplayVal = localMin ? Number(localMin) : resultMinBoundary;
+  const maxDisplayVal = localMax ? Number(localMax) : resultMaxBoundary;
+
+  const normaliseToPercentage = (value: number) => {
+    const range = resultMaxBoundary - resultMinBoundary;
+    if (range <= 0) return 0; // Failsafe against division by zero
+    const percentage = ((value - resultMinBoundary) / range) * 100;
+    return Math.max(0, Math.min(100, percentage)); // Clamp between 0% and 100%
+  };
+
+  const leftPercent = normaliseToPercentage(minDisplayVal);
+  const rightPercent = 100 - normaliseToPercentage(maxDisplayVal);
 
   const parentCategories = categories.filter(c =>
     c.parentId === null && categories.some(child => child.parentId === c.id)
@@ -152,14 +183,14 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
       className="flex items-center justify-between cursor-pointer group"
     >
       <div className="flex items-center gap-4">
-        <div className={`w-[18px] h-[18px] rounded-[4px] border flex items-center justify-center transition-all duration-300 ${activeCategories.includes(category.slug) ? 'bg-brand border-brand' : 'border-zinc-600 bg-transparent group-hover:border-zinc-400'}`}>
-          {activeCategories.includes(category.slug) && (
+        <div className={`w-[18px] h-[18px] rounded-[4px] border flex items-center justify-center transition-all duration-300 ${localCategories.includes(category.slug) ? 'bg-brand border-brand' : 'border-zinc-600 bg-transparent group-hover:border-zinc-400'}`}>
+          {localCategories.includes(category.slug) && (
             <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
         </div>
-        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${activeCategories.includes(category.slug) ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
+        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${localCategories.includes(category.slug) ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
           {category.name}
         </span>
       </div>
@@ -173,7 +204,7 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
     <aside className="w-full md:w-80 flex-shrink-0 md:sticky md:top-32 bg-surface-card border border-zinc-800/50 rounded-2xl p-6 shadow-2xl transition-colors duration-300">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-black text-white flex items-center gap-2 tracking-wide">
-          <span className="w-2 h-2 bg-brand rounded-full transition-colors duration-300"></span> Filters
+          <span className={`w-2 h-2 rounded-full transition-colors duration-300 ${isPending ? 'bg-zinc-500 animate-pulse' : 'bg-brand'}`}></span> Filters
         </h2>
         <button onClick={clearAll} className="text-xs font-bold text-zinc-500 hover:text-zinc-300 transition-colors">
           Clear All
@@ -215,15 +246,15 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
                     className="flex items-center justify-between cursor-pointer group"
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`w-[18px] h-[18px] rounded-[4px] border flex items-center justify-center transition-all duration-300 ${activeTags.includes(tag.slug) ? 'bg-brand border-brand' : 'border-zinc-600 bg-transparent group-hover:border-zinc-400'}`}>
-                        {activeTags.includes(tag.slug) && (
+                      <div className={`w-[18px] h-[18px] rounded-[4px] border flex items-center justify-center transition-all duration-300 ${localTags.includes(tag.slug) ? 'bg-brand border-brand' : 'border-zinc-600 bg-transparent group-hover:border-zinc-400'}`}>
+                        {localTags.includes(tag.slug) && (
                           <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
                       </div>
 
-                      <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${activeTags.includes(tag.slug) ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
+                      <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${localTags.includes(tag.slug) ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
                         {tag.name}
                       </span>
                     </div>
@@ -254,12 +285,14 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
         <div className="bg-surface-bg border border-zinc-800 rounded-xl p-4 flex items-center justify-between mb-8 shadow-inner transition-colors duration-300">
           <div className="flex-1 text-center">
             <span className="text-[11px] text-zinc-500 block mb-1">From</span>
-            <span className="font-bold text-white text-sm">Rs. {minVal.toLocaleString('en-US')}</span>
+            {/* 🚀 FIXED: Renders the active minimum threshold */}
+            <span className="font-bold text-white text-sm">Rs. {minDisplayVal.toLocaleString('en-US')}</span>
           </div>
           <div className="w-px h-10 bg-zinc-800 mx-2"></div>
           <div className="flex-1 text-center">
             <span className="text-[11px] text-zinc-500 block mb-1">To</span>
-            <span className="font-bold text-white text-sm">Rs. {maxVal.toLocaleString('en-US')}</span>
+            {/* 🚀 FIXED: Renders the active maximum threshold */}
+            <span className="font-bold text-white text-sm">Rs. {maxDisplayVal.toLocaleString('en-US')}</span>
           </div>
         </div>
 
@@ -268,14 +301,15 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
             className="absolute h-full bg-brand rounded-full transition-colors duration-300"
             style={{ left: `${leftPercent}%`, right: `${rightPercent}%` }}
           ></div>
+          {/* 🚀 FIXED: Dual-slider dynamically inherits constraints */}
           <input
             type="range"
-            min="0"
-            max={SLIDER_MAX}
+            min={resultMinBoundary}
+            max={resultMaxBoundary}
             step="1000"
-            value={minVal}
+            value={minDisplayVal}
             onChange={(e) => {
-              const val = Math.min(Number(e.target.value), maxVal - 1000);
+              const val = Math.min(Number(e.target.value), maxDisplayVal - 1000);
               setLocalMin(val.toString());
             }}
             onMouseUp={applyPriceFilter}
@@ -288,12 +322,12 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
           />
           <input
             type="range"
-            min="0"
-            max={SLIDER_MAX}
+            min={resultMinBoundary}
+            max={resultMaxBoundary}
             step="1000"
-            value={maxVal}
+            value={maxDisplayVal}
             onChange={(e) => {
-              const val = Math.max(Number(e.target.value), minVal + 1000);
+              const val = Math.max(Number(e.target.value), minDisplayVal + 1000);
               setLocalMax(val.toString());
             }}
             onMouseUp={applyPriceFilter}

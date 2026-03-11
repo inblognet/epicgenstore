@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { redis } from "@/lib/redis";
 import { CategoryForm } from "./CategoryForm";
-import { DeleteButton } from "@/components/admin/delete-button"; // 🚀 Import Universal Delete Button
+import { DeleteButton } from "@/components/admin/delete-button";
 
 export default async function AdminCategoriesPage({
   searchParams,
@@ -153,30 +153,28 @@ export default async function AdminCategoriesPage({
       if (id === editId) needsRedirect = true;
     } catch (error) {
       console.error(error);
-      // Prisma throws an error if you try to delete a category that still has products connected!
       return { success: false, error: "Failed to delete category. Ensure no products are attached to it." };
     }
 
-    // Safely redirect outside the try/catch block
     if (needsRedirect) redirect("/admin/categories");
 
     return { success: true };
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl text-zinc-50 font-sans transition-colors duration-300">
+    <div className="container mx-auto px-4 py-8 max-w-6xl text-zinc-50 font-sans transition-colors duration-300 w-full overflow-hidden">
       <AdminNav />
 
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3">
-          <FolderTree className="h-8 w-8 text-brand transition-colors duration-300" />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-3">
+          <FolderTree className="h-6 w-6 md:h-8 md:w-8 text-brand transition-colors duration-300" />
           Category Manager
         </h1>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-3 gap-8 items-start">
         {/* LEFT COLUMN: Create / Edit Form Component */}
-        <div className="md:col-span-1">
+        <div className="lg:col-span-1 lg:sticky lg:top-8">
           <CategoryForm
             editingCategory={editingCategory}
             topLevelCategories={topLevelCategories}
@@ -186,16 +184,18 @@ export default async function AdminCategoriesPage({
         </div>
 
         {/* RIGHT COLUMN: Nested Tree Table */}
-        <div className="md:col-span-2">
-          <div className="bg-surface-card border border-zinc-800/50 rounded-xl overflow-hidden shadow-lg transition-colors duration-300">
-            <table className="w-full text-sm text-left text-zinc-300">
+        <div className="lg:col-span-2 w-full">
+          {/* 🚀 FIXED: Added overflow-x-auto here to allow horizontal scrolling on mobile */}
+          <div className="bg-surface-card border border-zinc-800/50 rounded-xl overflow-x-auto shadow-lg transition-colors duration-300 w-full">
+            {/* 🚀 FIXED: Added min-w-[600px] so the table doesn't crush itself */}
+            <table className="w-full min-w-[600px] text-sm text-left text-zinc-300">
               <thead className="bg-surface-bg/50 border-b border-zinc-800/50 text-zinc-400 uppercase text-xs font-semibold">
                 <tr>
-                  <th className="px-6 py-4">Hierarchy</th>
-                  <th className="px-6 py-4">Image</th>
-                  <th className="px-6 py-4">Slug</th>
-                  <th className="px-6 py-4 text-center">Products</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-4 md:px-6 py-4 whitespace-nowrap">Hierarchy</th>
+                  <th className="px-4 md:px-6 py-4 whitespace-nowrap">Image</th>
+                  <th className="px-4 md:px-6 py-4 whitespace-nowrap">Slug</th>
+                  <th className="px-4 md:px-6 py-4 text-center whitespace-nowrap">Products</th>
+                  <th className="px-4 md:px-6 py-4 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/50">
@@ -203,52 +203,53 @@ export default async function AdminCategoriesPage({
                 {hierarchicalCategories.map((category) => (
                   <tr key={category.id} className={`hover:bg-zinc-800/30 transition-colors duration-200 ${category.isChild ? 'bg-surface-bg/30' : ''}`}>
 
-                    <td className="px-6 py-4">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                       {category.isChild ? (
-                        <div className="flex items-center gap-3 pl-6">
+                        <div className="flex items-center gap-2 pl-4 md:pl-6">
                           <CornerDownRight className="w-4 h-4 text-zinc-600" />
                           <span className="font-bold text-zinc-300">{category.name}</span>
                         </div>
                       ) : (
-                        <span className="font-black text-white text-base">{category.name}</span>
+                        <span className="font-black text-white text-sm md:text-base">{category.name}</span>
                       )}
                     </td>
 
-                    <td className="px-6 py-4">
+                    <td className="px-4 md:px-6 py-4">
                       {category.imageUrl ? (
-                        <div className="w-10 h-10 rounded bg-surface-bg border border-zinc-800 flex items-center justify-center overflow-hidden">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded bg-surface-bg border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={category.imageUrl} alt={category.name} className="w-full h-full object-contain p-1" />
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded bg-surface-bg border border-zinc-800 flex items-center justify-center text-zinc-700">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded bg-surface-bg border border-zinc-800 flex items-center justify-center text-zinc-700 shrink-0">
                           <ImageIcon className="w-4 h-4" />
                         </div>
                       )}
                     </td>
 
-                    <td className="px-6 py-4 text-zinc-500 font-mono text-[10px]">{category.slug}</td>
+                    <td className="px-4 md:px-6 py-4 text-zinc-500 font-mono text-[10px] md:text-xs whitespace-nowrap">{category.slug}</td>
 
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-surface-bg text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black tracking-widest border border-zinc-800/50 transition-colors duration-300">
+                    <td className="px-4 md:px-6 py-4 text-center">
+                      <span className="bg-surface-bg text-zinc-400 px-2 md:px-3 py-1 rounded-full text-[10px] font-black tracking-widest border border-zinc-800/50 transition-colors duration-300 inline-block">
                         {category._count.products}
                       </span>
                     </td>
 
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 md:px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="icon" asChild className="border-zinc-700 bg-surface-bg text-zinc-300 hover:bg-brand hover:text-black hover:border-brand transition-colors duration-300">
+                        <Button variant="outline" size="icon" asChild className="h-8 w-8 md:h-10 md:w-10 border-zinc-700 bg-surface-bg text-zinc-300 hover:bg-brand hover:text-black hover:border-brand transition-colors duration-300">
                           <Link href={`/admin/categories?edit=${category.id}`}>
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3 md:h-4 md:w-4" />
                           </Link>
                         </Button>
 
-                        {/* 🚀 NEW INTELLIGENT DELETE BUTTON */}
-                        <DeleteButton
-                          id={category.id}
-                          itemName="Category"
-                          deleteAction={deleteCategory}
-                        />
+                        <div className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center">
+                          <DeleteButton
+                            id={category.id}
+                            itemName="Category"
+                            deleteAction={deleteCategory}
+                          />
+                        </div>
                       </div>
                     </td>
                   </tr>

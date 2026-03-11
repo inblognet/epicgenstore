@@ -1,7 +1,7 @@
 // app/product/[slug]/page.tsx
 // cspell:ignore epicgenstore wishlisted KOKO pay2y
 import { prisma } from "@/lib/prisma";
-import { Product, Category, Tag, Review } from "@prisma/client"; // FIXED: Removed unused 'User' import
+import { Product, Category, Tag, Review } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/client/add-to-cart-button";
 import { ProductImageGallery } from "@/components/client/product-image-gallery";
@@ -53,7 +53,6 @@ export default async function ProductDetailsPage({
   // ==========================================
   const CACHE_KEY = `epicgenstore:product:${resolvedParams.slug}`;
 
-  // FIXED: Changed 'let' to 'const'
   const cachedData = await redis.get<ProductCacheData>(CACHE_KEY);
 
   let product: StoreProductDetails | null = null;
@@ -104,7 +103,6 @@ export default async function ProductDetailsPage({
   }
   // ==========================================
 
-  // Prevent TypeScript errors if product wasn't found (handled by notFound above)
   if (!product) return null;
 
   const reviewCount = product.reviews.length;
@@ -132,8 +130,8 @@ export default async function ProductDetailsPage({
   const pay2yInstallment = activePrice / 4;
 
   return (
-    <div className="min-h-screen bg-surface-bg text-theme-main py-8 md:py-12 font-sans transition-colors duration-300 overflow-hidden">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <div className="min-h-screen bg-surface-bg text-theme-main py-8 md:py-12 font-sans transition-colors duration-300 w-full overflow-x-hidden">
+      <div className="container mx-auto px-4 max-w-7xl w-full">
 
         <ScrollAnimate animation="fade-in">
           <Link href="/products" className="inline-flex items-center text-xs md:text-sm font-bold text-theme-muted hover:text-brand mb-8 md:mb-10 transition-colors uppercase tracking-wider duration-300 group">
@@ -143,10 +141,10 @@ export default async function ProductDetailsPage({
         </ScrollAnimate>
 
         {/* --- MAIN PRODUCT DETAILS (TOP SECTION) --- */}
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start mb-16">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start mb-16 w-full">
 
           {/* Left: Image Gallery */}
-          <ScrollAnimate animation="fade-in" delay={100} className="lg:sticky lg:top-[100px]">
+          <ScrollAnimate animation="fade-in" delay={100} className="lg:sticky lg:top-[100px] w-full max-w-full overflow-hidden">
             <ProductImageGallery
               mainImage={product.imageUrl}
               subImages={product.images}
@@ -154,7 +152,7 @@ export default async function ProductDetailsPage({
           </ScrollAnimate>
 
           {/* Right: Product Info & Actions */}
-          <ScrollAnimate animation="fade-up" delay={200} className="flex flex-col pt-2">
+          <ScrollAnimate animation="fade-up" delay={200} className="flex flex-col pt-2 w-full max-w-full">
 
             {primaryCategory && (
               <Link
@@ -166,7 +164,7 @@ export default async function ProductDetailsPage({
               </Link>
             )}
 
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-theme-main transition-colors duration-300 mb-4 uppercase">
+            <h1 className="text-2xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-theme-main transition-colors duration-300 mb-4 uppercase break-words">
               {product.name}
             </h1>
 
@@ -185,7 +183,7 @@ export default async function ProductDetailsPage({
             )}
 
             {/* Real Dynamic Star Rating */}
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
@@ -201,8 +199,8 @@ export default async function ProductDetailsPage({
               <span className="text-[10px] font-bold text-theme-muted uppercase tracking-widest pt-0.5">
                 {reviewCount} {reviewCount === 1 ? 'Review' : 'Reviews'}
               </span>
-              <span className={`ml-4 text-[9px] font-black px-2 py-0.5 rounded tracking-widest uppercase shadow-sm ${
-                product!.stock > 0 ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded tracking-widest uppercase shadow-sm ${
+                product.stock > 0 ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'
               }`}>
                 {product.stock > 0 ? `In Stock` : 'Sold Out'}
               </span>
@@ -211,47 +209,47 @@ export default async function ProductDetailsPage({
             {/* Price Block */}
             <div className="flex flex-col mb-6">
               <span className="text-3xl md:text-4xl font-black text-theme-main transition-colors duration-300">
-                LKR {activePrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                LKR {activePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               {product.salePrice && (
                 <span className="text-sm text-theme-muted line-through font-bold mt-1">
-                  LKR {Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  LKR {Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               )}
               <span className="text-[11px] text-theme-muted font-medium mt-2">
-                or up to 4 X LKR {pay2yInstallment.toLocaleString('en-US', { minimumFractionDigits: 2 })} with <span className="font-black text-[#00AEEF] italic">Pay2y</span>
+                or up to 4 X LKR {pay2yInstallment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with <span className="font-black text-[#00AEEF] italic">Pay2y</span>
               </span>
             </div>
 
             {/* --- PAYMENT OPTIONS GRID --- */}
-            <div className="grid grid-cols-4 gap-2 md:gap-3 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4 w-full">
               <div className="border border-theme-border rounded-lg p-2 md:p-3 flex flex-col items-center justify-center gap-1.5 bg-surface-card hover:border-brand hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default">
                 <Banknote className="w-5 h-5 text-theme-muted" />
-                <span className="text-[8px] md:text-[9px] font-black text-theme-main text-center leading-none">LKR {activePrice.toLocaleString()}</span>
+                <span className="text-[8px] md:text-[9px] font-black text-theme-main text-center leading-none">LKR {activePrice.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
               </div>
               <div className="border border-theme-border rounded-lg p-2 md:p-3 flex flex-col items-center justify-center gap-1.5 bg-surface-card hover:border-brand hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default">
                 <Building className="w-5 h-5 text-theme-muted" />
-                <span className="text-[8px] md:text-[9px] font-black text-theme-main text-center leading-none">LKR {activePrice.toLocaleString()}</span>
+                <span className="text-[8px] md:text-[9px] font-black text-theme-main text-center leading-none">LKR {activePrice.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
               </div>
-              <div className="border-2 border-[#1434CB]/30 bg-[#1434CB]/5 rounded-lg p-2 md:p-3 flex flex-col items-center justify-center gap-1.5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default relative">
+              <div className="border-2 border-[#1434CB]/30 bg-[#1434CB]/5 rounded-lg p-2 md:p-3 flex flex-col items-center justify-center gap-1.5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default relative overflow-hidden">
                 <span className="text-[#1434CB] font-black italic tracking-tighter text-sm leading-none">VISA</span>
-                <span className="text-[8px] md:text-[9px] font-black text-theme-main text-center leading-none mt-1">LKR {cardPrice.toLocaleString()}</span>
+                <span className="text-[8px] md:text-[9px] font-black text-theme-main text-center leading-none mt-1">LKR {cardPrice.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
               </div>
-              <div className="border-2 border-[#27AEE3]/30 bg-[#27AEE3]/5 rounded-lg p-2 md:p-3 flex flex-col items-center justify-center gap-1.5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default relative">
+              <div className="border-2 border-[#27AEE3]/30 bg-[#27AEE3]/5 rounded-lg p-2 md:p-3 flex flex-col items-center justify-center gap-1.5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default relative overflow-hidden">
                 <span className="text-[#27AEE3] font-black tracking-widest text-[10px] leading-none">AMEX</span>
-                <span className="text-[8px] md:text-[9px] font-black text-theme-main text-center leading-none mt-1">LKR {cardPrice.toLocaleString()}</span>
+                <span className="text-[8px] md:text-[9px] font-black text-theme-main text-center leading-none mt-1">LKR {cardPrice.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
               </div>
             </div>
 
             {/* KOKO Box */}
-            <div className="border-2 border-[#a855f7]/50 bg-[#a855f7]/5 rounded-xl p-5 flex flex-col items-center justify-center text-center mb-8 hover:bg-[#a855f7]/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default">
+            <div className="border-2 border-[#a855f7]/50 bg-[#a855f7]/5 rounded-xl p-4 md:p-5 flex flex-col items-center justify-center text-center mb-8 hover:bg-[#a855f7]/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default w-full">
                <span className="text-[#a855f7] font-black text-xl tracking-[0.2em] italic mb-1 animate-pulse">KOKO</span>
-               <span className="text-theme-main font-black text-sm">LKR {kokoTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
-               <span className="text-theme-muted text-[10px] font-bold mt-1 tracking-widest">or 3 x LKR {kokoInstallment.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+               <span className="text-theme-main font-black text-sm">LKR {kokoTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+               <span className="text-theme-muted text-[10px] font-bold mt-1 tracking-widest">or 3 x LKR {kokoInstallment.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
 
             {/* Add to Cart Actions */}
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-8 w-full">
               <div className="flex-1 transform transition-transform duration-300 hover:scale-[1.02]">
                 <AddToCartButton
                   product={{
@@ -267,24 +265,24 @@ export default async function ProductDetailsPage({
             </div>
 
             {/* Feature Icons */}
-            <div className="flex items-center justify-between py-6 border-y border-theme-border mb-8">
+            <div className="flex items-center justify-between py-6 border-y border-theme-border mb-8 w-full">
                <div className="flex flex-col items-center gap-2 text-center w-1/3 hover:scale-105 transition-transform duration-300">
-                  <Truck className="w-6 h-6 text-brand" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-theme-muted leading-tight">1 Days Instant<br/>Delivery</span>
+                  <Truck className="w-5 h-5 md:w-6 md:h-6 text-brand" />
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-theme-muted leading-tight">1 Days Instant<br/>Delivery</span>
                </div>
                <div className="flex flex-col items-center gap-2 text-center w-1/3 border-x border-theme-border hover:scale-105 transition-transform duration-300">
-                  <RefreshCcw className="w-6 h-6 text-brand" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-theme-muted leading-tight">3 Days Return<br/>Period</span>
+                  <RefreshCcw className="w-5 h-5 md:w-6 md:h-6 text-brand" />
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-theme-muted leading-tight">3 Days Return<br/>Period</span>
                </div>
                <div className="flex flex-col items-center gap-2 text-center w-1/3 hover:scale-105 transition-transform duration-300">
-                  <HeadphonesIcon className="w-6 h-6 text-brand" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-theme-muted leading-tight">24H Customer<br/>Support</span>
+                  <HeadphonesIcon className="w-5 h-5 md:w-6 md:h-6 text-brand" />
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-theme-muted leading-tight">24H Customer<br/>Support</span>
                </div>
             </div>
 
             {/* Safe Checkout Badges */}
-            <div className="flex flex-col items-center gap-4">
-               <span className="text-xs font-black uppercase tracking-widest text-theme-main flex items-center gap-2">
+            <div className="flex flex-col items-center gap-4 w-full">
+               <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-theme-main flex flex-wrap items-center justify-center text-center gap-2">
                  <ShieldCheck className="w-4 h-4 text-green-500" /> Guarantee Safe & Secure Checkout
                </span>
                <div className="flex flex-wrap justify-center gap-2 opacity-80 hover:opacity-100 transition-opacity duration-300">
@@ -310,8 +308,8 @@ export default async function ProductDetailsPage({
         </div>
 
         {/* --- DESCRIPTION TAB SECTION (BOTTOM) --- */}
-        <ScrollAnimate animation="fade-up" delay={300} className="pt-16 pb-16 border-t border-theme-border">
-          <div className="flex justify-center mb-10">
+        <ScrollAnimate animation="fade-up" delay={300} className="pt-12 md:pt-16 pb-12 md:pb-16 border-t border-theme-border w-full">
+          <div className="flex justify-center mb-8 md:mb-10 w-full">
              <div className="flex items-center gap-8 border-b-2 border-theme-border w-full md:w-auto justify-center md:px-12">
                 <span className="text-theme-main font-black uppercase tracking-widest text-sm md:text-base pb-4 border-b-4 border-brand -mb-[3px]">
                   Description
@@ -319,9 +317,9 @@ export default async function ProductDetailsPage({
              </div>
           </div>
 
-          <div className="max-w-4xl mx-auto bg-surface-card/30 p-8 rounded-2xl border border-theme-border shadow-sm hover:shadow-lg transition-all duration-500">
+          <div className="max-w-4xl mx-auto bg-surface-card/30 p-5 md:p-8 rounded-2xl border border-theme-border shadow-sm hover:shadow-lg transition-all duration-500 w-full">
              {product.description ? (
-                <div className="text-theme-muted leading-relaxed text-sm md:text-base whitespace-pre-wrap">
+                <div className="text-theme-muted leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words">
                    {product.description}
                 </div>
              ) : (
@@ -331,49 +329,49 @@ export default async function ProductDetailsPage({
         </ScrollAnimate>
 
         {/* --- CUSTOMER REVIEWS SECTION --- */}
-        <ScrollAnimate animation="fade-up" delay={400} className="pt-10 pb-16 border-t border-theme-border border-dashed">
+        <ScrollAnimate animation="fade-up" delay={400} className="pt-10 pb-16 border-t border-theme-border border-dashed w-full">
           <div className="flex flex-col items-center justify-center mb-10 text-center">
-             <h3 className="text-2xl font-black text-theme-main uppercase tracking-widest mb-2">Customer Reviews</h3>
+             <h3 className="text-xl md:text-2xl font-black text-theme-main uppercase tracking-widest mb-2">Customer Reviews</h3>
              <p className="text-theme-muted text-xs font-bold uppercase tracking-widest">
                {reviewCount} {reviewCount === 1 ? 'Review' : 'Reviews'} for this product
              </p>
           </div>
 
-          <div className="max-w-4xl mx-auto space-y-4">
+          <div className="max-w-4xl mx-auto space-y-4 w-full">
             {product.reviews.length > 0 ? (
               product.reviews.map((review, rIndex) => (
                 <ScrollAnimate key={review.id} animation="fade-up" delay={rIndex * 100}>
-                  <div className="bg-surface-card border border-theme-border p-6 rounded-2xl flex flex-col gap-4 hover:shadow-lg transition-shadow duration-300">
+                  <div className="bg-surface-card border border-theme-border p-4 md:p-6 rounded-2xl flex flex-col gap-4 hover:shadow-lg transition-shadow duration-300 w-full">
                     <div className="flex items-center justify-between border-b border-theme-border/50 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-surface-bg border border-theme-border flex items-center justify-center overflow-hidden shadow-sm">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-surface-bg border border-theme-border flex items-center justify-center overflow-hidden shadow-sm shrink-0">
                           {review.user?.image ? (
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img src={review.user.image} alt={review.user.name || "User"} className="w-full h-full object-cover" />
                           ) : (
-                            <UserIcon className="w-5 h-5 text-theme-muted" />
+                            <UserIcon className="w-4 h-4 md:w-5 md:h-5 text-theme-muted" />
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-black text-xs uppercase tracking-widest text-theme-main">{review.user?.name || "Verified Customer"}</span>
+                          <span className="font-black text-[10px] md:text-xs uppercase tracking-widest text-theme-main line-clamp-1">{review.user?.name || "Verified Customer"}</span>
                           <div className="flex gap-0.5 mt-1">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <Star key={star} className={`w-3 h-3 ${star <= review.rating ? "fill-yellow-500 text-yellow-500" : "text-theme-border"}`} />
+                              <Star key={star} className={`w-2.5 h-2.5 md:w-3 md:h-3 ${star <= review.rating ? "fill-yellow-500 text-yellow-500" : "text-theme-border"}`} />
                             ))}
                           </div>
                         </div>
                       </div>
-                      <span className="text-[10px] text-theme-muted font-black uppercase tracking-widest">
+                      <span className="text-[9px] md:text-[10px] text-theme-muted font-black uppercase tracking-widest shrink-0 ml-2">
                         {new Date(review.createdAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-theme-muted text-sm leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+                    <p className="text-theme-muted text-xs md:text-sm leading-relaxed whitespace-pre-wrap break-words">{review.comment}</p>
                   </div>
                 </ScrollAnimate>
               ))
             ) : (
-              <div className="bg-surface-card/30 border border-theme-border p-12 rounded-2xl text-center">
-                <p className="text-theme-muted font-medium text-sm">No reviews yet. Purchase this item to be the first to leave a review!</p>
+              <div className="bg-surface-card/30 border border-theme-border p-8 md:p-12 rounded-2xl text-center w-full">
+                <p className="text-theme-muted font-medium text-xs md:text-sm">No reviews yet. Purchase this item to be the first to leave a review!</p>
               </div>
             )}
           </div>
@@ -381,18 +379,18 @@ export default async function ProductDetailsPage({
 
         {/* --- RELATED PRODUCTS SECTION --- */}
         {relatedProducts.length > 0 && (
-          <div className="pt-16 border-t border-theme-border transition-colors duration-300">
+          <div className="pt-16 border-t border-theme-border transition-colors duration-300 w-full">
             <ScrollAnimate animation="fade-in" className="mb-10 text-center">
-              <h2 className="text-2xl md:text-3xl font-black mb-2 text-theme-main transition-colors duration-300 uppercase tracking-widest">Related Products</h2>
-              <p className="text-theme-muted text-xs md:text-sm font-bold uppercase tracking-widest transition-colors duration-300">You might also be interested in</p>
+              <h2 className="text-xl md:text-3xl font-black mb-2 text-theme-main transition-colors duration-300 uppercase tracking-widest">Related Products</h2>
+              <p className="text-theme-muted text-[10px] md:text-sm font-bold uppercase tracking-widest transition-colors duration-300">You might also be interested in</p>
             </ScrollAnimate>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 items-stretch">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 items-stretch w-full">
               {relatedProducts.map((related, rIndex) => {
                 const hasHoverImage = related.images && related.images.length > 0;
                 const hoverImageUrl = hasHoverImage ? related.images[0] : null;
                 const relatedActivePrice = related.salePrice ? Number(related.salePrice) : Number(related.price);
-                const relatedInstallment = (relatedActivePrice / 3).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                const relatedInstallment = (relatedActivePrice / 3).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                 return (
                   <ScrollAnimate key={related.id} animation="fade-up" delay={rIndex * 100} className="h-full">
@@ -459,11 +457,11 @@ export default async function ProductDetailsPage({
                               <span className="text-[9px] md:text-[10px] text-theme-muted block mb-1 tracking-widest uppercase font-bold">LKR</span>
                               {related.salePrice ? (
                                 <div className="flex flex-col">
-                                  <span className="text-[9px] md:text-xs text-theme-muted line-through leading-none mb-0.5">{Number(related.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                  <span className="text-red-500">{Number(related.salePrice).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                  <span className="text-[9px] md:text-xs text-theme-muted line-through leading-none mb-0.5">{Number(related.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  <span className="text-red-500">{Number(related.salePrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                               ) : (
-                                <span>{Number(related.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                <span>{Number(related.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               )}
                             </div>
 
@@ -483,7 +481,6 @@ export default async function ProductDetailsPage({
                           </div>
                         </div>
                       </div>
-
                     </div>
                   </ScrollAnimate>
                 );

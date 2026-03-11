@@ -162,7 +162,7 @@ export default async function AdminCategoriesPage({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl text-zinc-50 font-sans transition-colors duration-300 w-full overflow-hidden">
+    <div className="container mx-auto px-4 py-8 max-w-6xl text-zinc-50 font-sans transition-colors duration-300 w-full overflow-x-hidden">
       <AdminNav />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -184,86 +184,90 @@ export default async function AdminCategoriesPage({
         </div>
 
         {/* RIGHT COLUMN: Nested Tree Table */}
-        <div className="lg:col-span-2 w-full">
-          {/* 🚀 FIXED: Added overflow-x-auto here to allow horizontal scrolling on mobile */}
-          <div className="bg-surface-card border border-zinc-800/50 rounded-xl overflow-x-auto shadow-lg transition-colors duration-300 w-full">
-            {/* 🚀 FIXED: Added min-w-[600px] so the table doesn't crush itself */}
-            <table className="w-full min-w-[600px] text-sm text-left text-zinc-300">
-              <thead className="bg-surface-bg/50 border-b border-zinc-800/50 text-zinc-400 uppercase text-xs font-semibold">
-                <tr>
-                  <th className="px-4 md:px-6 py-4 whitespace-nowrap">Hierarchy</th>
-                  <th className="px-4 md:px-6 py-4 whitespace-nowrap">Image</th>
-                  <th className="px-4 md:px-6 py-4 whitespace-nowrap">Slug</th>
-                  <th className="px-4 md:px-6 py-4 text-center whitespace-nowrap">Products</th>
-                  <th className="px-4 md:px-6 py-4 text-right whitespace-nowrap">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/50">
+        {/* 🚀 FIXED: Added min-w-0 here to force the grid to respect screen bounds! */}
+        <div className="lg:col-span-2 w-full min-w-0">
+          <div className="bg-surface-card border border-zinc-800/50 rounded-xl shadow-lg transition-colors duration-300 w-full overflow-hidden">
 
-                {hierarchicalCategories.map((category) => (
-                  <tr key={category.id} className={`hover:bg-zinc-800/30 transition-colors duration-200 ${category.isChild ? 'bg-surface-bg/30' : ''}`}>
-
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                      {category.isChild ? (
-                        <div className="flex items-center gap-2 pl-4 md:pl-6">
-                          <CornerDownRight className="w-4 h-4 text-zinc-600" />
-                          <span className="font-bold text-zinc-300">{category.name}</span>
-                        </div>
-                      ) : (
-                        <span className="font-black text-white text-sm md:text-base">{category.name}</span>
-                      )}
-                    </td>
-
-                    <td className="px-4 md:px-6 py-4">
-                      {category.imageUrl ? (
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded bg-surface-bg border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={category.imageUrl} alt={category.name} className="w-full h-full object-contain p-1" />
-                        </div>
-                      ) : (
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded bg-surface-bg border border-zinc-800 flex items-center justify-center text-zinc-700 shrink-0">
-                          <ImageIcon className="w-4 h-4" />
-                        </div>
-                      )}
-                    </td>
-
-                    <td className="px-4 md:px-6 py-4 text-zinc-500 font-mono text-[10px] md:text-xs whitespace-nowrap">{category.slug}</td>
-
-                    <td className="px-4 md:px-6 py-4 text-center">
-                      <span className="bg-surface-bg text-zinc-400 px-2 md:px-3 py-1 rounded-full text-[10px] font-black tracking-widest border border-zinc-800/50 transition-colors duration-300 inline-block">
-                        {category._count.products}
-                      </span>
-                    </td>
-
-                    <td className="px-4 md:px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="icon" asChild className="h-8 w-8 md:h-10 md:w-10 border-zinc-700 bg-surface-bg text-zinc-300 hover:bg-brand hover:text-black hover:border-brand transition-colors duration-300">
-                          <Link href={`/admin/categories?edit=${category.id}`}>
-                            <Edit className="h-3 w-3 md:h-4 md:w-4" />
-                          </Link>
-                        </Button>
-
-                        <div className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center">
-                          <DeleteButton
-                            id={category.id}
-                            itemName="Category"
-                            deleteAction={deleteCategory}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-
-                {hierarchicalCategories.length === 0 && (
+            {/* 🚀 FIXED: Placed overflow-x-auto inside the card, so only the table scrolls */}
+            <div className="overflow-x-auto w-full">
+              {/* 🚀 FIXED: Slightly increased min-w to give the buttons breathing room */}
+              <table className="w-full min-w-[650px] text-sm text-left text-zinc-300">
+                <thead className="bg-surface-bg/50 border-b border-zinc-800/50 text-zinc-400 uppercase text-xs font-semibold">
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500 font-medium">
-                      No categories found. Create your first one on the left!
-                    </td>
+                    <th className="px-4 md:px-6 py-4 whitespace-nowrap">Hierarchy</th>
+                    <th className="px-4 md:px-6 py-4 whitespace-nowrap">Image</th>
+                    <th className="px-4 md:px-6 py-4 whitespace-nowrap">Slug</th>
+                    <th className="px-4 md:px-6 py-4 text-center whitespace-nowrap">Products</th>
+                    <th className="px-4 md:px-6 py-4 text-right whitespace-nowrap">Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/50">
+
+                  {hierarchicalCategories.map((category) => (
+                    <tr key={category.id} className={`hover:bg-zinc-800/30 transition-colors duration-200 ${category.isChild ? 'bg-surface-bg/30' : ''}`}>
+
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                        {category.isChild ? (
+                          <div className="flex items-center gap-2 pl-4 md:pl-6">
+                            <CornerDownRight className="w-4 h-4 text-zinc-600" />
+                            <span className="font-bold text-zinc-300">{category.name}</span>
+                          </div>
+                        ) : (
+                          <span className="font-black text-white text-sm md:text-base">{category.name}</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 md:px-6 py-4">
+                        {category.imageUrl ? (
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded bg-surface-bg border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={category.imageUrl} alt={category.name} className="w-full h-full object-contain p-1" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded bg-surface-bg border border-zinc-800 flex items-center justify-center text-zinc-700 shrink-0">
+                            <ImageIcon className="w-4 h-4" />
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="px-4 md:px-6 py-4 text-zinc-500 font-mono text-[10px] md:text-xs whitespace-nowrap">{category.slug}</td>
+
+                      <td className="px-4 md:px-6 py-4 text-center">
+                        <span className="bg-surface-bg text-zinc-400 px-2 md:px-3 py-1 rounded-full text-[10px] font-black tracking-widest border border-zinc-800/50 transition-colors duration-300 inline-block">
+                          {category._count.products}
+                        </span>
+                      </td>
+
+                      <td className="px-4 md:px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="icon" asChild className="h-8 w-8 md:h-10 md:w-10 border-zinc-700 bg-surface-bg text-zinc-300 hover:bg-brand hover:text-black hover:border-brand transition-colors duration-300 shrink-0">
+                            <Link href={`/admin/categories?edit=${category.id}`}>
+                              <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                            </Link>
+                          </Button>
+
+                          <div className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center shrink-0">
+                            <DeleteButton
+                              id={category.id}
+                              itemName="Category"
+                              deleteAction={deleteCategory}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {hierarchicalCategories.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-zinc-500 font-medium">
+                        No categories found. Create your first one on the left!
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

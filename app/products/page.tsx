@@ -173,12 +173,8 @@ export default async function ProductsListPage({
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
 
-          {/* FIXED SIDEBAR: Put <aside> back to hold the style tag correctly */}
-          <ScrollAnimate animation="fade-in" delay={150}>
-            <aside className="w-full md:w-64 shrink-0 md:sticky md:top-[80px] md:max-h-[calc(100vh-100px)] md:overflow-y-auto md:pb-10" style={{ scrollbarWidth: 'none' }}>
-              <ProductFilters categories={categories} />
-            </aside>
-          </ScrollAnimate>
+          {/* EXACT OLD LAYOUT RESTORED: No extra wrappers! */}
+          <ProductFilters categories={categories} />
 
           <main className="flex-1 w-full">
             <ScrollAnimate animation="fade-in" delay={200} className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-surface-card/50 p-4 rounded-xl border border-theme-border transition-colors duration-300">

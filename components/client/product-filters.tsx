@@ -154,15 +154,14 @@ export function ProductFilters({
     });
   };
 
-  // 🚀 FIXED: Dynamic UI state normalization based on server boundaries
   const minDisplayVal = localMin ? Number(localMin) : resultMinBoundary;
   const maxDisplayVal = localMax ? Number(localMax) : resultMaxBoundary;
 
   const normaliseToPercentage = (value: number) => {
     const range = resultMaxBoundary - resultMinBoundary;
-    if (range <= 0) return 0; // Failsafe against division by zero
+    if (range <= 0) return 0;
     const percentage = ((value - resultMinBoundary) / range) * 100;
-    return Math.max(0, Math.min(100, percentage)); // Clamp between 0% and 100%
+    return Math.max(0, Math.min(100, percentage));
   };
 
   const leftPercent = normaliseToPercentage(minDisplayVal);
@@ -211,6 +210,7 @@ export function ProductFilters({
         </button>
       </div>
 
+      {/* 1. SEARCH SECTION */}
       <div className="mb-10">
         <h3 className="text-sm font-bold text-zinc-300 mb-3">Search Products</h3>
         <div className="relative">
@@ -224,6 +224,36 @@ export function ProductFilters({
         </div>
       </div>
 
+      {/* 2. CATEGORIES SECTION (Moved Up) */}
+      <div className="space-y-10 mb-10 pb-8 border-b border-zinc-800/50">
+        <h3 className="text-sm font-bold text-zinc-200 tracking-wide mb-5 uppercase border-b border-zinc-800 pb-2">Filter by Categories</h3>
+
+        {parentCategories.map(parent => (
+          <div key={parent.id}>
+            <h3 className="text-sm font-bold text-zinc-400 tracking-wide mb-4 uppercase">{parent.name}</h3>
+            <div className="space-y-4">
+              {categories.filter(c => c.parentId === parent.id).map(child => (
+                <CategoryCheckbox key={child.id} category={child} />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {standaloneCategories.length > 0 && (
+          <div className="pt-4 border-t border-zinc-800/50">
+            <h3 className="text-sm font-bold text-zinc-400 tracking-wide mb-4 uppercase">
+              {parentCategories.length > 0 ? "OTHER CATEGORIES" : "CATEGORIES"}
+            </h3>
+            <div className="space-y-4">
+              {standaloneCategories.map((category) => (
+                <CategoryCheckbox key={category.id} category={category} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. TAGS SECTION */}
       {dynamicTags.length > 0 && (
         <div className="space-y-10 mb-10 border-b border-zinc-800/50 pb-8">
           {Object.entries(
@@ -270,7 +300,7 @@ export function ProductFilters({
         </div>
       )}
 
-      {/* PRICE RANGE SECTION */}
+      {/* 4. PRICE RANGE SECTION */}
       <div className="mb-12">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-sm font-bold text-zinc-200 tracking-wide">Price Range</h3>
@@ -285,13 +315,11 @@ export function ProductFilters({
         <div className="bg-surface-bg border border-zinc-800 rounded-xl p-4 flex items-center justify-between mb-8 shadow-inner transition-colors duration-300">
           <div className="flex-1 text-center">
             <span className="text-[11px] text-zinc-500 block mb-1">From</span>
-            {/* 🚀 FIXED: Renders the active minimum threshold */}
             <span className="font-bold text-white text-sm">Rs. {minDisplayVal.toLocaleString('en-US')}</span>
           </div>
           <div className="w-px h-10 bg-zinc-800 mx-2"></div>
           <div className="flex-1 text-center">
             <span className="text-[11px] text-zinc-500 block mb-1">To</span>
-            {/* 🚀 FIXED: Renders the active maximum threshold */}
             <span className="font-bold text-white text-sm">Rs. {maxDisplayVal.toLocaleString('en-US')}</span>
           </div>
         </div>
@@ -301,7 +329,6 @@ export function ProductFilters({
             className="absolute h-full bg-brand rounded-full transition-colors duration-300"
             style={{ left: `${leftPercent}%`, right: `${rightPercent}%` }}
           ></div>
-          {/* 🚀 FIXED: Dual-slider dynamically inherits constraints */}
           <input
             type="range"
             min={resultMinBoundary}
@@ -373,34 +400,6 @@ export function ProductFilters({
             <button onClick={() => { setLocalMin("100000"); setLocalMax(""); lastPushed.current.min = "100000"; lastPushed.current.max = ""; updateFilters({ minPrice: "100000", maxPrice: null }); }} className="text-xs bg-surface-bg border border-zinc-800 hover:border-zinc-600 text-zinc-300 px-4 py-1.5 rounded-lg transition-all shadow-sm mt-1">Above 100k</button>
           </div>
         </div>
-      </div>
-
-      <div className="space-y-10">
-        <h3 className="text-sm font-bold text-zinc-200 tracking-wide mb-5 uppercase border-b border-zinc-800 pb-2">Filter by Categories</h3>
-
-        {parentCategories.map(parent => (
-          <div key={parent.id}>
-            <h3 className="text-sm font-bold text-zinc-400 tracking-wide mb-4 uppercase">{parent.name}</h3>
-            <div className="space-y-4">
-              {categories.filter(c => c.parentId === parent.id).map(child => (
-                <CategoryCheckbox key={child.id} category={child} />
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {standaloneCategories.length > 0 && (
-          <div className="pt-4 border-t border-zinc-800/50">
-            <h3 className="text-sm font-bold text-zinc-400 tracking-wide mb-4 uppercase">
-              {parentCategories.length > 0 ? "OTHER CATEGORIES" : "CATEGORIES"}
-            </h3>
-            <div className="space-y-4">
-              {standaloneCategories.map((category) => (
-                <CategoryCheckbox key={category.id} category={category} />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </aside>
   );

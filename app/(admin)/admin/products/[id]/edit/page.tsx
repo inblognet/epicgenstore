@@ -49,7 +49,9 @@ export default async function EditProductPage({
       const price = parseFloat(formData.get("price") as string);
       const imageUrl = formData.get("imageUrl") as string;
       const stock = parseInt(formData.get("stock") as string, 10);
-      const description = formData.get("description") as string;
+
+      // 🚀 FIXED: Grab the description string from the form
+      const descriptionString = formData.get("description") as string;
 
       const tagIds = formData.getAll("tagIds") as string[];
       const categoryIds = formData.getAll("categoryIds") as string[];
@@ -64,6 +66,9 @@ export default async function EditProductPage({
 
       slug = slug.toLowerCase().trim().replace(/[\s_]+/g, '-');
 
+      // 🚀 FIXED: Parse the JSON string back into a real object before saving
+      const parsedDescription = descriptionString ? JSON.parse(descriptionString) : null;
+
       await prisma.product.update({
         where: { id: productId },
         data: {
@@ -73,7 +78,8 @@ export default async function EditProductPage({
           imageUrl: imageUrl || null,
           images: validImages,
           stock,
-          description: description || null,
+          // 🚀 FIXED: Pass the parsed JSON object to Prisma
+          description: parsedDescription,
           tags: {
             set: tagIds.map(id => ({ id }))
           },

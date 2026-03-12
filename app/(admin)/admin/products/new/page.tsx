@@ -34,7 +34,9 @@ export default async function NewProductPage() {
       const price = parseFloat(formData.get("price") as string);
       const imageUrl = formData.get("imageUrl") as string;
       const stock = parseInt(formData.get("stock") as string, 10);
-      const description = formData.get("description") as string;
+
+      // 🚀 FIXED: Grab the description string from the form
+      const descriptionString = formData.get("description") as string;
 
       const tagIds = formData.getAll("tagIds") as string[];
       const categoryIds = formData.getAll("categoryIds") as string[];
@@ -49,6 +51,9 @@ export default async function NewProductPage() {
 
       slug = slug.toLowerCase().trim().replace(/[\s_]+/g, '-');
 
+      // 🚀 FIXED: Parse the JSON string back into a real object before saving
+      const parsedDescription = descriptionString ? JSON.parse(descriptionString) : null;
+
       // Save to database
       await prisma.product.create({
         data: {
@@ -58,7 +63,8 @@ export default async function NewProductPage() {
           imageUrl: imageUrl || null,
           images: validImages,
           stock,
-          description: description || null,
+          // 🚀 FIXED: Pass the parsed JSON object to Prisma
+          description: parsedDescription,
           categories: {
             connect: categoryIds.map(id => ({ id }))
           },

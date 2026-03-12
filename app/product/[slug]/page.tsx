@@ -38,6 +38,9 @@ interface ProductCacheData {
   product: StoreProductDetails;
   relatedProducts: RelatedProduct[];
 }
+
+// 🚀 FIXED: Added types for the JSON description structure
+type TableDescriptionData = { type?: string; data?: string[][] };
 // ==========================================
 
 export default async function ProductDetailsPage({
@@ -128,6 +131,10 @@ export default async function ProductDetailsPage({
   const kokoTotal = activePrice * 1.076; // Koko markup
   const kokoInstallment = kokoTotal / 3;
   const pay2yInstallment = activePrice / 4;
+
+  // 🚀 FIXED: Parse the description data safely to see if it's text or a table
+  const descData = product.description as TableDescriptionData | string | null;
+  const isTableDesc = descData !== null && typeof descData === 'object' && descData.type === 'table' && Array.isArray(descData.data);
 
   return (
     <div className="min-h-screen bg-surface-bg text-theme-main py-8 md:py-12 font-sans transition-colors duration-300 w-full overflow-x-hidden">
@@ -317,13 +324,35 @@ export default async function ProductDetailsPage({
              </div>
           </div>
 
-          <div className="max-w-4xl mx-auto bg-surface-card/30 p-5 md:p-8 rounded-2xl border border-theme-border shadow-sm hover:shadow-lg transition-all duration-500 w-full">
+          <div className="max-w-4xl mx-auto bg-surface-card/30 rounded-2xl border border-theme-border shadow-sm hover:shadow-lg transition-all duration-500 w-full overflow-hidden">
+             {/* 🚀 FIXED: Dynamic Render for Table Mode vs Text Mode */}
              {product.description ? (
-                <div className="text-theme-muted leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words">
-                   {product.description}
-                </div>
+                isTableDesc ? (
+                  <div className="w-full overflow-x-auto">
+                    <table className="w-full text-sm md:text-base text-left text-theme-muted">
+                      <tbody className="divide-y divide-theme-border/50">
+                        {descData.data!.map((row: string[], index: number) => (
+                          <tr key={index} className="hover:bg-surface-bg/50 transition-colors">
+                            <td className="px-5 py-4 md:px-8 md:py-5 font-bold text-theme-main w-1/3 md:w-1/4 bg-surface-card/50 align-top">
+                              {row[0]}
+                            </td>
+                            <td className="px-5 py-4 md:px-8 md:py-5 whitespace-pre-wrap break-words align-top">
+                              {row[1]}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-5 md:p-8 text-theme-muted leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words">
+                    {typeof descData === 'string' ? descData : JSON.stringify(descData)}
+                  </div>
+                )
              ) : (
-                <p className="text-center text-theme-muted italic">No detailed description provided for this item.</p>
+                <div className="p-5 md:p-8 text-center text-theme-muted italic">
+                  No detailed description provided for this item.
+                </div>
              )}
           </div>
         </ScrollAnimate>

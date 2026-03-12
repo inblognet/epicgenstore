@@ -9,7 +9,7 @@ import { AddToCartButton } from "@/components/client/add-to-cart-button";
 import { HeroCarousel } from "@/components/client/hero-carousel";
 import { WishlistButton } from "@/components/client/wishlist-button";
 import { CarouselItem } from "./(admin)/admin/settings/page";
-import { Monitor, Cpu, Truck, ShieldCheck, Wrench, HeadphonesIcon, ChevronRight, RefreshCcw } from "lucide-react";
+import { Monitor, Cpu, Truck, ShieldCheck, Wrench, HeadphonesIcon, ChevronRight, RefreshCcw, Star } from "lucide-react";
 
 import { getExperienceImages } from "@/app/actions/customer-experience";
 import { CustomerExperiencesCarousel } from "@/components/homepage/CustomerExperiencesCarousel";
@@ -24,10 +24,12 @@ export const revalidate = 3600;
 // ==========================================
 // 🛡️ STRICT TYPES
 // ==========================================
+// 🚀 FIXED: Added reviews array to the StoreProduct type
 type StoreProduct = Product & {
   images?: string[];
   categories?: Category[];
   category?: Category | null;
+  reviews?: { rating: number }[];
 };
 
 type StoreCarousel = Carousel & {
@@ -50,7 +52,6 @@ interface HomepageCacheData {
   categories: Category[];
 }
 
-// FIXED: Created a specific type for the mapped carousel data
 export type CarouselProductData = {
   id: string;
   name: string;
@@ -62,6 +63,8 @@ export type CarouselProductData = {
   stock: number;
   onSale: boolean;
   category: Category | null;
+  // 🚀 FIXED: Allow the carousel to accept the reviews array
+  reviews?: { rating: number }[];
 };
 // ==========================================
 
@@ -108,10 +111,12 @@ export default async function HomePage() {
         where: { onSale: true },
         take: 4,
         orderBy: { updatedAt: "desc" },
+        include: { reviews: { select: { rating: true } } } // 🚀 FIXED: Included reviews
       }),
       prisma.product.findMany({
         take: 4,
         orderBy: { createdAt: "desc" },
+        include: { reviews: { select: { rating: true } } } // 🚀 FIXED: Included reviews
       }),
       prisma.carousel.findMany({
         where: { isVisible: true },
@@ -122,7 +127,8 @@ export default async function HomePage() {
               products: {
                 take: 10,
                 orderBy: { createdAt: 'desc' },
-                include: { categories: true }
+                // 🚀 FIXED: Included reviews in the carousel products
+                include: { categories: true, reviews: { select: { rating: true } } }
               }
             }
           }
@@ -233,6 +239,12 @@ export default async function HomePage() {
             const activePrice = product.onSale && product.salePrice ? Number(product.salePrice) : Number(product.price);
             const installmentPrice = (activePrice / 3).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
+            // 🚀 FIXED: Dynamic rating calculation for New Arrivals
+            const reviewCount = product.reviews?.length || 0;
+            const averageRating = reviewCount > 0
+              ? product.reviews!.reduce((acc, review) => acc + review.rating, 0) / reviewCount
+              : 0;
+
             return (
               <ScrollAnimate key={product.id} animation="fade-up" delay={index * 100} className="h-full">
                 <div className="h-full bg-transparent border border-theme-border rounded-xl md:rounded-2xl overflow-hidden hover:border-brand/50 transition-all group flex flex-col shadow-sm hover:shadow-2xl hover:-translate-y-2 duration-500">
@@ -258,9 +270,21 @@ export default async function HomePage() {
                       <h3 className="font-bold text-[11px] md:text-sm leading-snug line-clamp-2 mb-2 text-theme-main uppercase tracking-wide">{product.name}</h3>
                     </Link>
 
+                    {/* 🚀 FIXED: Rendering Dynamic Stars */}
                     <div className="flex items-center gap-1.5 mb-3 md:mb-4">
-                      <div className="flex text-theme-muted/50 text-[10px] tracking-widest">★★★★★</div>
-                      <span className="text-[8px] md:text-[9px] text-theme-muted">(reviews)</span>
+                      <div className="flex gap-[1px]">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-2.5 h-2.5 md:w-3 md:h-3 ${
+                              star <= Math.round(averageRating)
+                                ? "fill-yellow-500 text-yellow-500"
+                                : "text-theme-border"
+                            } transition-colors duration-300`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[8px] md:text-[9px] text-theme-muted">({reviewCount})</span>
                     </div>
 
                     <div className="mt-auto flex flex-col gap-3">
@@ -339,6 +363,12 @@ export default async function HomePage() {
               const activePrice = product.onSale && product.salePrice ? Number(product.salePrice) : Number(product.price);
               const installmentPrice = (activePrice / 3).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
+              // 🚀 FIXED: Dynamic rating calculation for Promo Products
+              const reviewCount = product.reviews?.length || 0;
+              const averageRating = reviewCount > 0
+                ? product.reviews!.reduce((acc, review) => acc + review.rating, 0) / reviewCount
+                : 0;
+
               return (
                 <ScrollAnimate key={product.id} animation="fade-up" delay={index * 100} className="h-full">
                   <div className="h-full bg-transparent border border-theme-border rounded-xl md:rounded-2xl overflow-hidden hover:border-brand/50 transition-all group flex flex-col shadow-sm hover:shadow-2xl hover:-translate-y-2 duration-500">
@@ -375,13 +405,31 @@ export default async function HomePage() {
                     </Link>
 
                     <div className="p-3 md:p-5 flex flex-col flex-grow z-10 bg-transparent">
+                      {product.category && (
+                        <span className="text-[8px] md:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1 md:mb-2 truncate">
+                          {product.category.name}
+                        </span>
+                      )}
+
                       <Link href={`/product/${product.slug}`} className="hover:text-brand transition-colors duration-300">
                         <h3 className="font-bold text-[11px] md:text-sm leading-snug line-clamp-2 mb-2 text-theme-main uppercase tracking-wide">{product.name}</h3>
                       </Link>
 
+                      {/* 🚀 FIXED: Rendering Dynamic Stars */}
                       <div className="flex items-center gap-1.5 mb-3 md:mb-4">
-                        <div className="flex text-theme-muted/50 text-[10px] tracking-widest">★★★★★</div>
-                        <span className="text-[8px] md:text-[9px] text-theme-muted">(reviews)</span>
+                        <div className="flex gap-[1px]">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-2.5 h-2.5 md:w-3 md:h-3 ${
+                                star <= Math.round(averageRating)
+                                  ? "fill-yellow-500 text-yellow-500"
+                                  : "text-theme-border"
+                              } transition-colors duration-300`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[8px] md:text-[9px] text-theme-muted">({reviewCount})</span>
                       </div>
 
                       <div className="mt-auto flex flex-col gap-3">
@@ -399,7 +447,13 @@ export default async function HomePage() {
                           </div>
 
                           <div className="shrink-0 mt-1 md:mt-0 transition-transform hover:scale-105 duration-300">
-                            <AddToCartButton product={{ id: product.id, name: product.name, slug: product.slug, price: activePrice, imageUrl: product.imageUrl }} isCard={true} />
+                            <AddToCartButton product={{
+                              id: product.id,
+                              name: product.name,
+                              slug: product.slug,
+                              price: activePrice,
+                              imageUrl: product.imageUrl,
+                            }} isCard={true} />
                           </div>
                         </div>
 
@@ -424,7 +478,6 @@ export default async function HomePage() {
       </section>
 
       {activeCarousels.map((carousel: StoreCarousel, index: number) => {
-        // FIXED: Using our properly defined CarouselProductData type
         const productDetails: CarouselProductData[] = carousel.category?.products.map((product: StoreProduct) => ({
           id: product.id,
           name: product.name,
@@ -436,6 +489,7 @@ export default async function HomePage() {
           stock: product.stock,
           onSale: product.onSale,
           category: product.categories && product.categories.length > 0 ? product.categories[0] : null,
+          reviews: product.reviews // 🚀 FIXED: Passing reviews data down to the carousel layout
         })) || [];
 
         if (carousel.imageUrl) {
@@ -563,7 +617,6 @@ function BannerCategoryLayout({
   title: string,
   categorySlug: string,
   banner: { imageUrl: string | null, imageTitle: string | null, imageSubtitle: string | null, imageButtonText: string | null },
-  // FIXED: Using our strict CarouselProductData type instead of StoreProduct
   products: CarouselProductData[],
   wishlistedIds: string[]
 }) {
@@ -603,6 +656,12 @@ function BannerCategoryLayout({
           const hoverImageUrl = hasHoverImage ? product.images[0] : null;
           const activePrice = product.onSale && product.salePrice ? Number(product.salePrice) : Number(product.price);
           const installmentPrice = (activePrice / 3).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+          // 🚀 FIXED: Dynamic rating calculation for Mixed Layout Carousels
+          const reviewCount = product.reviews?.length || 0;
+          const averageRating = reviewCount > 0
+            ? product.reviews!.reduce((acc, review) => acc + review.rating, 0) / reviewCount
+            : 0;
 
           return (
             <ScrollAnimate key={product.id} animation="fade-up" delay={(pIndex + 1) * 100} className="order-2 h-full">
@@ -663,9 +722,21 @@ function BannerCategoryLayout({
                     <h3 className="font-bold text-[11px] md:text-sm leading-snug line-clamp-2 mb-2 text-theme-main uppercase tracking-wide">{product.name}</h3>
                   </Link>
 
+                  {/* 🚀 FIXED: Rendering Dynamic Stars */}
                   <div className="flex items-center gap-1.5 mb-3 md:mb-4">
-                    <div className="flex text-theme-muted/50 text-[10px] tracking-widest">★★★★★</div>
-                    <span className="text-[8px] md:text-[9px] text-theme-muted">(reviews)</span>
+                    <div className="flex gap-[1px]">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-2.5 h-2.5 md:w-3 md:h-3 ${
+                            star <= Math.round(averageRating)
+                              ? "fill-yellow-500 text-yellow-500"
+                              : "text-theme-border"
+                          } transition-colors duration-300`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[8px] md:text-[9px] text-theme-muted">({reviewCount})</span>
                   </div>
 
                   <div className="mt-auto flex flex-col gap-3">

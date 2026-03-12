@@ -195,7 +195,7 @@ model Product {
   id            String         @id @default(uuid())
   name          String
   slug          String         @unique
-  description   String?        @db.Text
+  description Json?    // Old: description String?
   price         Decimal        @db.Decimal(10, 2)
   onSale        Boolean        @default(false)
   salePrice     Decimal?       @db.Decimal(10, 2)

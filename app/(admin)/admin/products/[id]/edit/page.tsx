@@ -2,6 +2,7 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client"; // 🚀 Added Prisma for strict type casting
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { EditProductForm } from "./edit-product-form";
@@ -31,6 +32,13 @@ export default async function EditProductPage({
     return notFound();
   }
 
+  // 🚀 FIXED: Convert Prisma Decimal objects to standard numbers so Next.js can pass them to the Client Component safely!
+  const serializedProduct = {
+    ...product,
+    price: Number(product.price) as unknown as Prisma.Decimal,
+    salePrice: product.salePrice ? (Number(product.salePrice) as unknown as Prisma.Decimal) : null,
+  };
+
   const [categories, tags] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.tag.findMany({ orderBy: { name: "asc" } })
@@ -50,7 +58,6 @@ export default async function EditProductPage({
       const imageUrl = formData.get("imageUrl") as string;
       const stock = parseInt(formData.get("stock") as string, 10);
 
-      // 🚀 FIXED: Grab the description string from the form
       const descriptionString = formData.get("description") as string;
 
       const tagIds = formData.getAll("tagIds") as string[];
@@ -66,7 +73,6 @@ export default async function EditProductPage({
 
       slug = slug.toLowerCase().trim().replace(/[\s_]+/g, '-');
 
-      // 🚀 FIXED: Parse the JSON string back into a real object before saving
       const parsedDescription = descriptionString ? JSON.parse(descriptionString) : null;
 
       await prisma.product.update({
@@ -78,7 +84,6 @@ export default async function EditProductPage({
           imageUrl: imageUrl || null,
           images: validImages,
           stock,
-          // 🚀 FIXED: Pass the parsed JSON object to Prisma
           description: parsedDescription,
           tags: {
             set: tagIds.map(id => ({ id }))
@@ -90,11 +95,8 @@ export default async function EditProductPage({
       });
 
       // --- CLEAR REDIS CACHES ---
-      // Clear homepage and sidebar filters
       await redis.del("epicgenstore:homepage:data");
       await redis.del("epicgenstore:categories:filters");
-
-      // Clear the specific product page caches (we delete both old and new slug just in case they changed it)
       await redis.del(`epicgenstore:product:${product!.slug}`);
       await redis.del(`epicgenstore:product:${slug}`);
 
@@ -123,9 +125,9 @@ export default async function EditProductPage({
           Edit Product
         </h1>
 
-        {/* Inject our Client Form here */}
+        {/* 🚀 Inject the serialized product instead of the raw database object */}
         <EditProductForm
-          product={product}
+          product={serializedProduct}
           categories={categories}
           tags={tags}
           updateProductAction={updateProductAction}

@@ -31,8 +31,9 @@ export function AdminNav() {
     { name: "Vouchers", path: "/admin/vouchers" },
     { name: "Experiences", path: "/admin/customer-experiences" },
     { name: "Carousels", path: "/admin/carousels" },
-    // 🚀 NEW: Added the Users link here!
     { name: "Users", path: "/admin/users" },
+    // 🚀 NEW: Added the Data Extraction link!
+    { name: "Extraction", path: "/admin/data-extraction" },
   ];
 
   const isSettingsActive = pathname === "/admin/settings";

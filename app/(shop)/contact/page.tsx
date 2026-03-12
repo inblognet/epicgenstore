@@ -127,7 +127,7 @@ export default async function ContactPage() {
       <section className="bg-surface-card/30 py-20 border-y border-zinc-800/50 transition-colors duration-300">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold tracking-tight mb-2">Our Services</h2>
+            <h2 className="text-3xl font-extrabold tracking-tight mb-2">Our Service</h2>
             <p className="text-zinc-500 text-sm">Complete computer solutions for all your needs</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

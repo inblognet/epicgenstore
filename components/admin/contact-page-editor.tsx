@@ -1,4 +1,5 @@
 // components/admin/contact-page-editor.tsx
+// cspell:ignore Delpe Ragama Poya
 "use client";
 
 import { useState } from "react";
@@ -9,7 +10,8 @@ import { updateContactPageData } from "@/app/actions/admin-settings";
 export const defaultContactData = {
   hero: {
     badge: "Get In Touch",
-    title: "Contact MSK COMPUTERS",
+    title: "Contact",
+    highlightedText: "MSK COMPUTERS",
     subtitle: "Ready to help you with all your computer needs. From sales to repairs, our expert team is here to provide the best service in Sri Lanka."
   },
   stats: {
@@ -31,9 +33,19 @@ export const defaultContactData = {
 
 export function ContactPageEditor({ initialData }: { initialData: Partial<typeof defaultContactData> | null }) {
   const router = useRouter();
-  const [data, setData] = useState<typeof defaultContactData>(
-    initialData && Object.keys(initialData).length > 0 ? (initialData as typeof defaultContactData) : defaultContactData
-  );
+
+  // Backward compatibility check for old data structures
+  const safeInitialData = initialData ? {
+    ...initialData,
+    hero: {
+      ...defaultContactData.hero,
+      ...(initialData.hero || {}),
+      // 🚀 FIXED: Removed 'any' and used strict Record type
+      highlightedText: (initialData.hero as Record<string, string>)?.highlightedText || "MSK COMPUTERS"
+    }
+  } : defaultContactData;
+
+  const [data, setData] = useState<typeof defaultContactData>(safeInitialData as typeof defaultContactData);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -43,6 +55,8 @@ export function ContactPageEditor({ initialData }: { initialData: Partial<typeof
       alert("Contact page updated successfully!");
       router.refresh();
     } catch (error) {
+      // 🚀 FIXED: Actually logged the error so the variable is used!
+      console.error("Failed to update contact page:", error);
       alert("Failed to save changes.");
     } finally {
       setIsSaving(false);
@@ -51,23 +65,31 @@ export function ContactPageEditor({ initialData }: { initialData: Partial<typeof
 
   return (
     <div className="space-y-12">
-      {/* REPLACED: bg-zinc-900 border-zinc-800 -> bg-surface-card border-zinc-800/50 */}
       <div className="sticky top-4 z-50 bg-surface-card border border-zinc-800/50 p-4 rounded-2xl flex justify-between items-center shadow-2xl transition-colors duration-300">
         <h2 className="text-sm font-black text-white uppercase tracking-widest">Contact Page Editor</h2>
-        {/* REPLACED: bg-yellow-500 hover:bg-yellow-600 -> bg-brand hover:bg-brand-hover shadow-brand/20 */}
         <button onClick={handleSave} disabled={isSaving} className="bg-brand hover:bg-brand-hover text-black font-black px-6 py-3 rounded-xl text-xs uppercase tracking-widest transition-all duration-300 active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-brand/20">
           <Save className="w-4 h-4 mr-2 inline" /> {isSaving ? "Saving..." : "Publish Changes"}
         </button>
       </div>
 
-      {/* REPLACED: bg-zinc-900 border-zinc-800 -> bg-surface-card border-zinc-800/50 */}
       <section className="bg-surface-card border border-zinc-800/50 rounded-3xl p-8 transition-colors duration-300">
-        {/* REPLACED: text-yellow-500 -> text-brand */}
         <h3 className="text-brand font-black uppercase tracking-widest mb-6 border-b border-zinc-800/50 pb-4 transition-colors duration-300">Hero Section</h3>
         <div className="grid gap-4">
-          {/* REPLACED: bg-zinc-950 border-zinc-800 -> bg-surface-bg border-zinc-800/50 focus:border-brand */}
-          <input type="text" value={data.hero.title} onChange={(e) => setData({ ...data, hero: { ...data.hero, title: e.target.value } })} className="bg-surface-bg border border-zinc-800/50 rounded-xl px-4 py-3 text-xs text-white focus:border-brand outline-none transition-colors duration-300" />
-          <textarea value={data.hero.subtitle} onChange={(e) => setData({ ...data, hero: { ...data.hero, subtitle: e.target.value } })} className="bg-surface-bg border border-zinc-800/50 rounded-xl px-4 py-3 text-xs text-white focus:border-brand outline-none transition-colors duration-300" rows={2} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] text-zinc-500 uppercase font-bold mb-1 block">Main Title (White Text)</label>
+              <input type="text" value={data.hero.title} onChange={(e) => setData({ ...data, hero: { ...data.hero, title: e.target.value } })} className="w-full bg-surface-bg border border-zinc-800/50 rounded-xl px-4 py-3 text-xs text-white focus:border-brand outline-none transition-colors duration-300" />
+            </div>
+            <div>
+               <label className="text-[10px] text-zinc-500 uppercase font-bold mb-1 block">Highlighted Title (Brand Color)</label>
+              <input type="text" value={data.hero.highlightedText} onChange={(e) => setData({ ...data, hero: { ...data.hero, highlightedText: e.target.value } })} className="w-full bg-surface-bg border border-zinc-800/50 rounded-xl px-4 py-3 text-xs text-brand focus:border-brand outline-none transition-colors duration-300" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-zinc-500 uppercase font-bold mb-1 block">Subtitle</label>
+            <textarea value={data.hero.subtitle} onChange={(e) => setData({ ...data, hero: { ...data.hero, subtitle: e.target.value } })} className="w-full bg-surface-bg border border-zinc-800/50 rounded-xl px-4 py-3 text-xs text-white focus:border-brand outline-none transition-colors duration-300" rows={2} />
+          </div>
         </div>
       </section>
 

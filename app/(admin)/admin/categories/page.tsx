@@ -172,9 +172,11 @@ export default async function AdminCategoriesPage({
         </h1>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8 items-start">
-        {/* LEFT COLUMN: Create / Edit Form Component */}
-        <div className="lg:col-span-1 lg:sticky lg:top-8">
+      {/* 🚀 FIXED: Changed from grid to a vertical flex column */}
+      <div className="flex flex-col gap-10 items-start w-full">
+
+        {/* TOP ROW: Create / Edit Form Component */}
+        <div className="w-full">
           <CategoryForm
             editingCategory={editingCategory}
             topLevelCategories={topLevelCategories}
@@ -183,14 +185,12 @@ export default async function AdminCategoriesPage({
           />
         </div>
 
-        {/* RIGHT COLUMN: Nested Tree Table */}
-        {/* 🚀 FIXED: Added min-w-0 here to force the grid to respect screen bounds! */}
-        <div className="lg:col-span-2 w-full min-w-0">
+        {/* BOTTOM ROW: Nested Tree Table */}
+        <div className="w-full min-w-0">
           <div className="bg-surface-card border border-zinc-800/50 rounded-xl shadow-lg transition-colors duration-300 w-full overflow-hidden">
 
-            {/* 🚀 FIXED: Placed overflow-x-auto inside the card, so only the table scrolls */}
+            {/* 🚀 FIXED: Reverted to standard overflow without the flip trick */}
             <div className="overflow-x-auto w-full">
-              {/* 🚀 FIXED: Slightly increased min-w to give the buttons breathing room */}
               <table className="w-full min-w-[650px] text-sm text-left text-zinc-300">
                 <thead className="bg-surface-bg/50 border-b border-zinc-800/50 text-zinc-400 uppercase text-xs font-semibold">
                   <tr>

@@ -9,10 +9,9 @@ import { Plus, Edit, PackageSearch } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { PromoToggle } from "@/components/admin/promo-toggle";
 import { AdminNav } from "@/components/admin/admin-nav";
-import { DeleteButton } from "@/components/admin/delete-button"; // 🚀 Import Universal Delete Button
-import { redis } from "@/lib/redis"; // 🚀 Import Redis!
+import { DeleteButton } from "@/components/admin/delete-button";
+import { redis } from "@/lib/redis";
 
-// FORCE DYNAMIC: Ensures the admin dashboard always pulls fresh data from the database
 export const dynamic = "force-dynamic";
 
 export default async function AdminProductsPage() {
@@ -25,32 +24,27 @@ export default async function AdminProductsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // 🚀 UPDATED: Secure, cache-clearing Server Action
   const deleteProduct = async (id: string) => {
     "use server";
     const currentSession = await auth();
     if (currentSession?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     try {
-      // 1. Fetch the product first so we know its slug to clear the cache!
       const productToDelete = await prisma.product.findUnique({
         where: { id },
         select: { slug: true }
       });
 
-      // 2. Delete it from the database
       await prisma.product.delete({
         where: { id },
       });
 
-      // 3. 🚀 CLEAR REDIS CACHES
       await redis.del("epicgenstore:homepage:data");
       await redis.del("epicgenstore:categories:filters");
       if (productToDelete?.slug) {
         await redis.del(`epicgenstore:product:${productToDelete.slug}`);
       }
 
-      // 4. Tell Next.js to refresh
       revalidatePath("/admin/products");
       revalidatePath("/products");
       revalidatePath("/");
@@ -132,7 +126,8 @@ export default async function AdminProductsPage() {
                 </td>
 
                 <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border ${
+                  {/* 🚀 FIXED: Added whitespace-nowrap and inline-block to prevent the awkward line break! */}
+                  <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border ${
                     product.stock > 0
                       ? 'bg-green-500/10 text-green-400 border-green-500/20'
                       : 'bg-red-500/10 text-red-400 border-red-500/20'
@@ -149,7 +144,6 @@ export default async function AdminProductsPage() {
                       </Link>
                     </Button>
 
-                    {/* 🚀 REPLACED THE OLD HTML FORM WITH OUR NEW UNIVERSAL COMPONENT */}
                     <DeleteButton
                       id={product.id}
                       itemName="Product"

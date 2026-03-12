@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { Users, Shield, User as UserIcon } from "lucide-react";
 import { UserRoleSelect } from "./user-role-select";
-import { Role } from "@prisma/client"; // 🚀 FIXED: Imported Role type from Prisma
+import { DeleteUserButton } from "./delete-user-button"; // 🚀 NEW: Imported our delete button
+import { Role } from "@prisma/client";
 
 export default async function AdminUsersPage() {
   const session = await auth();
@@ -19,7 +20,7 @@ export default async function AdminUsersPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // --- SECURE SERVER ACTION ---
+  // --- SECURE SERVER ACTION: UPDATE ROLE ---
   async function updateUserRole(userId: string, newRole: string) {
     "use server";
     const currentSession = await auth();
@@ -33,7 +34,6 @@ export default async function AdminUsersPage() {
     try {
       await prisma.user.update({
         where: { id: userId },
-        // 🚀 FIXED: Cast the generic string to the strict Prisma Role enum
         data: { role: newRole as Role },
       });
 
@@ -42,6 +42,31 @@ export default async function AdminUsersPage() {
     } catch (error) {
       console.error("Failed to update user role:", error);
       return { success: false, error: "Failed to update user role in database." };
+    }
+  }
+
+  // --- 🚀 NEW SECURE SERVER ACTION: DELETE USER ---
+  async function deleteUser(userId: string) {
+    "use server";
+    const currentSession = await auth();
+    if (currentSession?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
+
+    // Safety check: Admins cannot accidentally delete themselves
+    if (userId === currentSession.user.id) {
+      return { success: false, error: "You cannot delete your own account." };
+    }
+
+    try {
+      await prisma.user.delete({
+        where: { id: userId },
+      });
+
+      revalidatePath("/admin/users");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      // NOTE: If this fails, it's usually because the user has Orders tied to them and you have strict relational constraints in Prisma.
+      return { success: false, error: "Failed to delete user. They may have associated orders in the database." };
     }
   }
 
@@ -68,7 +93,7 @@ export default async function AdminUsersPage() {
                 <th className="px-4 md:px-6 py-4 whitespace-nowrap">User</th>
                 <th className="px-4 md:px-6 py-4 whitespace-nowrap">Email</th>
                 <th className="px-4 md:px-6 py-4 whitespace-nowrap text-center">Joined Date</th>
-                <th className="px-4 md:px-6 py-4 text-right whitespace-nowrap">Role</th>
+                <th className="px-4 md:px-6 py-4 text-right whitespace-nowrap">Role & Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/50">
@@ -109,13 +134,20 @@ export default async function AdminUsersPage() {
                     })}
                   </td>
 
-                  {/* Role Selection */}
-                  <td className="px-4 md:px-6 py-4 text-right">
+                  {/* Role Selection & Delete Action */}
+                  <td className="px-4 md:px-6 py-4 flex items-center justify-end gap-3">
                     <UserRoleSelect
                       userId={user.id}
                       currentRole={user.role}
                       isCurrentUser={user.id === session.user.id}
                       updateRoleAction={updateUserRole}
+                    />
+
+                    {/* 🚀 NEW: Delete user button */}
+                    <DeleteUserButton
+                      userId={user.id}
+                      isCurrentUser={user.id === session.user.id}
+                      deleteAction={deleteUser}
                     />
                   </td>
 

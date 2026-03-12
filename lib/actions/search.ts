@@ -7,12 +7,14 @@ export async function searchProducts(query: string) {
   // If the query is empty, return nothing
   if (!query || query.trim() === "") return [];
 
-  // Search the database for products matching the name or description
+  // 🚀 FIXED: Removed the JSON description search to prevent Prisma crashes.
+  // Added Category and Tag searching to make the quick-search smarter!
   const products = await prisma.product.findMany({
     where: {
       OR: [
         { name: { contains: query, mode: "insensitive" } },
-        { description: { contains: query, mode: "insensitive" } },
+        { categories: { some: { name: { contains: query, mode: "insensitive" } } } },
+        { tags: { some: { name: { contains: query, mode: "insensitive" } } } },
       ],
     },
     take: 5, // Limit to 5 results for the quick dropdown

@@ -3,7 +3,7 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Save, FolderTree, Plus, Trash2, AlignLeft, TableProperties } from "lucide-react";
+import { Save, FolderTree, Plus, Trash2, AlignLeft, TableProperties, Search, Tags } from "lucide-react"; // 🚀 Added Search and Tags icons
 import { ProductImageManager } from "@/components/admin/product-image-manager";
 import { MainImageUploader } from "@/components/admin/main-image-uploader";
 import { useAdminLoader } from "@/components/admin/admin-loading-provider";
@@ -28,6 +28,10 @@ export function EditProductForm({ product, categories, tags, updateProductAction
   const router = useRouter();
   const { startLoading, stopLoading } = useAdminLoader();
 
+  // 🚀 STATE FOR FILTER SEARCH BARS
+  const [categorySearch, setCategorySearch] = useState("");
+  const [tagSearch, setTagSearch] = useState("");
+
   // 🚀 INITIALIZE DESCRIPTION STATE SAFELY (Strictly Typed)
   const descData = product.description as TableDescriptionData | string | null;
   const isTableData = descData !== null && typeof descData === 'object' && descData.type === 'table';
@@ -43,6 +47,10 @@ export function EditProductForm({ product, categories, tags, updateProductAction
     : [{ key: 'Model', value: '' }];
 
   const [tableRows, setTableRows] = useState<TableRow[]>(initialTableRows);
+
+  // 🚀 FILTER LOGIC
+  const filteredCategories = categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase()));
+  const filteredTags = tags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase()));
 
   // 🚀 TABLE ROW HANDLERS (Strictly Typed Parameters)
   const addRow = () => setTableRows([...tableRows, { key: '', value: '' }]);
@@ -87,6 +95,11 @@ export function EditProductForm({ product, categories, tags, updateProductAction
     }
   };
 
+  // Prevent "Enter" key in search bars from submitting the whole form
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') e.preventDefault();
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-6">
@@ -114,55 +127,83 @@ export function EditProductForm({ product, categories, tags, updateProductAction
           />
         </div>
 
-        {/* --- MULTIPLE CATEGORY SELECTOR --- */}
+        {/* --- MULTIPLE CATEGORY SELECTOR WITH SEARCH --- */}
         <div className="space-y-2">
           <label className="text-xs font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
             <FolderTree className="w-4 h-4 text-yellow-500" /> Select Categories
           </label>
-          <div className="flex flex-wrap gap-4 p-5 bg-[#0a0a0a] border border-zinc-800 rounded-xl shadow-inner max-h-60 overflow-y-auto">
-            {categories.length === 0 ? (
-              <span className="text-sm text-zinc-500 italic">No categories created yet.</span>
-            ) : (
-              categories.map((cat) => (
-                <label key={cat.id} className="flex items-center gap-2 cursor-pointer group w-full sm:w-[calc(50%-1rem)]">
-                  <input
-                    type="checkbox"
-                    name="categoryIds"
-                    value={cat.id}
-                    defaultChecked={product.categories.some(c => c.id === cat.id)}
-                    className="w-4 h-4 accent-yellow-500 cursor-pointer rounded border-zinc-800 bg-zinc-900"
-                  />
-                  <span className="text-sm font-medium text-zinc-300 group-hover:text-yellow-500 transition-colors">
-                    {cat.name}
-                  </span>
-                </label>
-              ))
-            )}
+          <div className="p-4 bg-[#0a0a0a] border border-zinc-800 rounded-xl space-y-4 shadow-inner">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                placeholder="Filter categories..."
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-yellow-500/50 transition-colors placeholder:text-zinc-600"
+              />
+            </div>
+            <div className="flex flex-wrap gap-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map((cat) => (
+                  <label key={cat.id} className="flex items-center gap-2 cursor-pointer group w-full sm:w-[calc(50%-1rem)]">
+                    <input
+                      type="checkbox"
+                      name="categoryIds"
+                      value={cat.id}
+                      defaultChecked={product.categories.some(c => c.id === cat.id)}
+                      className="w-4 h-4 accent-yellow-500 cursor-pointer rounded border-zinc-800 bg-zinc-900"
+                    />
+                    <span className="text-sm font-medium text-zinc-300 group-hover:text-yellow-500 transition-colors">
+                      {cat.name}
+                    </span>
+                  </label>
+                ))
+              ) : (
+                <span className="text-sm text-zinc-500 italic">No categories found matching &quot;{categorySearch}&quot;</span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* PRODUCT TAGS SELECTOR */}
+        {/* PRODUCT TAGS SELECTOR WITH SEARCH */}
         <div className="space-y-2">
-          <label className="text-xs font-black text-zinc-400 uppercase tracking-widest">Product Tags</label>
-          <div className="flex flex-wrap gap-4 p-5 bg-[#0a0a0a] border border-zinc-800 rounded-xl shadow-inner">
-            {tags.length === 0 ? (
-              <span className="text-sm text-zinc-500 italic">No tags created yet.</span>
-            ) : (
-              tags.map((tag) => (
-                <label key={tag.id} className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    name="tagIds"
-                    value={tag.id}
-                    defaultChecked={product.tags.some(t => t.id === tag.id)}
-                    className="w-4 h-4 accent-yellow-500 cursor-pointer rounded border-zinc-800 bg-zinc-900"
-                  />
-                  <span className="text-sm font-medium text-zinc-300 group-hover:text-yellow-500 transition-colors">
-                    {tag.name}
-                  </span>
-                </label>
-              ))
-            )}
+          <label className="text-xs font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+            <Tags className="w-4 h-4 text-yellow-500" /> Product Tags
+          </label>
+          <div className="p-4 bg-[#0a0a0a] border border-zinc-800 rounded-xl space-y-4 shadow-inner">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                placeholder="Filter tags..."
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-yellow-500/50 transition-colors placeholder:text-zinc-600"
+              />
+            </div>
+            <div className="flex flex-wrap gap-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+              {filteredTags.length > 0 ? (
+                filteredTags.map((tag) => (
+                  <label key={tag.id} className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      name="tagIds"
+                      value={tag.id}
+                      defaultChecked={product.tags.some(t => t.id === tag.id)}
+                      className="w-4 h-4 accent-yellow-500 cursor-pointer rounded border-zinc-800 bg-zinc-900"
+                    />
+                    <span className="text-sm font-medium text-zinc-300 group-hover:text-yellow-500 transition-colors">
+                      {tag.name}
+                    </span>
+                  </label>
+                ))
+              ) : (
+                <span className="text-sm text-zinc-500 italic">No tags found matching &quot;{tagSearch}&quot;</span>
+              )}
+            </div>
           </div>
         </div>
 

@@ -40,7 +40,6 @@ export default async function ProductsListPage({
 
   const categoryParam = typeof resolvedParams.category === "string" ? resolvedParams.category : "";
 
-  // 🚀 FIXED: We strip "all" right here so it NEVER hits the database query!
   const activeCategorySlugs = categoryParam
     ? categoryParam.split(",").filter(c => c !== "all")
     : [];
@@ -57,7 +56,6 @@ export default async function ProductsListPage({
   const whereClause: Prisma.ProductWhereInput = {};
   const andConditions: Prisma.ProductWhereInput[] = [];
 
-  // 🚀 FIXED: We no longer need to check for "all" here because we stripped it above
   if (activeCategorySlugs.length > 0) {
     andConditions.push({ categories: { some: { slug: { in: activeCategorySlugs } } } });
   }
@@ -72,7 +70,9 @@ export default async function ProductsListPage({
     andConditions.push({
       OR: [
         { name: { contains: searchQuery, mode: "insensitive" } },
-        { description: { contains: searchQuery, mode: "insensitive" } },
+        // 🚀 FIXED: Replaced 'description' search with Category search.
+        // Prisma cannot run 'insensitive' string searches on JSON columns.
+        { categories: { some: { name: { contains: searchQuery, mode: "insensitive" } } } }
       ],
     });
   }
@@ -113,7 +113,6 @@ export default async function ProductsListPage({
   }
   // ==========================================
 
-  // 🐌 ALWAYS FETCH PRODUCTS DYNAMICALLY based on the active user filters
   const fetchedProducts = await prisma.product.findMany({
     where: whereClause,
     orderBy: orderByClause,
@@ -129,7 +128,7 @@ export default async function ProductsListPage({
   // 🚀 NEW DYNAMIC PRICE BOUNDARY CALCULATION
   // ==========================================
   let dynamicMinBoundary = 0;
-  let dynamicMaxBoundary = 1000000; // Fallback max if no products exist
+  let dynamicMaxBoundary = 1000000;
 
   if (products.length > 0) {
     const effectivePrices = products.map(p =>
@@ -139,7 +138,6 @@ export default async function ProductsListPage({
     dynamicMinBoundary = Math.floor(Math.min(...effectivePrices));
     dynamicMaxBoundary = Math.ceil(Math.max(...effectivePrices));
 
-    // Prevent slider crash if all products cost the exact same amount
     if (dynamicMinBoundary === dynamicMaxBoundary) {
       dynamicMinBoundary = Math.max(0, dynamicMinBoundary - 100);
       dynamicMaxBoundary = dynamicMaxBoundary + 100;
@@ -201,7 +199,6 @@ export default async function ProductsListPage({
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
 
-          {/* 🚀 FIXED: Passed dynamic boundaries down to the filter component */}
           <ProductFilters
             categories={categories}
             resultMinBoundary={dynamicMinBoundary}

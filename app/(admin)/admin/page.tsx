@@ -28,38 +28,45 @@ export default async function AdminDashboard() {
 
   const totalRevenue = revenueCalc._sum.total || 0;
 
-  // --- 2. FETCH CHART DATA (Last 7 Days) ---
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const recentOrdersData = await prisma.order.findMany({
-    where: { createdAt: { gte: sevenDaysAgo } },
+  // --- 2. FETCH CHART DATA (All Time grouped by Month) ---
+  const allOrdersData = await prisma.order.findMany({
     select: { createdAt: true, total: true },
     orderBy: { createdAt: 'asc' }
   });
 
-  // Group data by day for the charts
   const chartDataMap = new Map();
 
-  // Initialize the last 7 days with 0 to ensure no empty gaps in the chart
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    // FIXED: Removed the invalid 'short: numeric' property
-    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    chartDataMap.set(dateStr, { date: dateStr, revenue: 0, orders: 0 });
-  }
+  if (allOrdersData.length > 0) {
+    const firstDate = allOrdersData[0].createdAt;
+    const lastDate = new Date();
 
-  // Populate actual data
-  recentOrdersData.forEach(order => {
-    // FIXED: Removed the invalid 'short: numeric' property
-    const dateStr = order.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    if (chartDataMap.has(dateStr)) {
-      const existing = chartDataMap.get(dateStr);
-      existing.revenue += Number(order.total);
-      existing.orders += 1;
+    // Initialize all months from the very first order to the current month
+    // This ensures there are no empty "gaps" in the chart if you had a month with 0 sales
+
+    // 🚀 FIXED: Changed 'let' to 'const'
+    const currentDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
+    const endDate = new Date(lastDate.getFullYear(), lastDate.getMonth(), 1);
+
+    while (currentDate <= endDate) {
+      const monthStr = currentDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      chartDataMap.set(monthStr, { date: monthStr, revenue: 0, orders: 0 });
+      currentDate.setMonth(currentDate.getMonth() + 1); // Mutating the object is fine with const!
     }
-  });
+
+    // Populate actual data
+    allOrdersData.forEach(order => {
+      const monthStr = order.createdAt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      if (chartDataMap.has(monthStr)) {
+        const existing = chartDataMap.get(monthStr);
+        existing.revenue += Number(order.total);
+        existing.orders += 1;
+      }
+    });
+  } else {
+    // Fallback if no orders exist yet
+    const currentMonth = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    chartDataMap.set(currentMonth, { date: currentMonth, revenue: 0, orders: 0 });
+  }
 
   const chartData = Array.from(chartDataMap.values());
 
@@ -77,22 +84,18 @@ export default async function AdminDashboard() {
       <AdminNav />
 
       <div className="flex items-center gap-3 mb-8">
-        {/* REPLACED: text-yellow-500 -> text-brand */}
         <Activity className="h-8 w-8 text-brand transition-colors duration-300" />
         <h1 className="text-3xl font-black uppercase tracking-tight italic">Dashboard Overview</h1>
       </div>
 
       {/* --- KPI STATS CARDS --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* REPLACED: bg-zinc-900 border-zinc-800 -> bg-surface-card border-zinc-800/50 */}
         <div className="bg-surface-card border border-zinc-800/50 rounded-2xl p-6 shadow-lg relative overflow-hidden group transition-colors duration-300">
-          {/* REPLACED: group-hover:text-yellow-500/10 -> group-hover:text-brand/10 */}
           <div className="absolute -right-6 -top-6 text-zinc-800/50 group-hover:text-brand/10 transition-colors duration-500">
             <DollarSign className="w-32 h-32" />
           </div>
           <div className="relative z-10">
             <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
-              {/* REPLACED: text-yellow-500 -> text-brand */}
               <DollarSign className="w-4 h-4 text-brand transition-colors duration-300" /> Total Revenue
             </p>
             <h3 className="text-3xl font-black text-white">
@@ -143,13 +146,13 @@ export default async function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div className="bg-surface-card border border-zinc-800/50 rounded-3xl p-6 shadow-xl transition-colors duration-300">
           <h3 className="text-white font-bold text-lg mb-1">Revenue Overview</h3>
-          <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-6">Last 7 Days</p>
+          <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-6">All Time</p>
           <RevenueChart data={chartData} />
         </div>
 
         <div className="bg-surface-card border border-zinc-800/50 rounded-3xl p-6 shadow-xl transition-colors duration-300">
           <h3 className="text-white font-bold text-lg mb-1">Order Volume</h3>
-          <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-6">Last 7 Days</p>
+          <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-6">All Time</p>
           <OrdersChart data={chartData} />
         </div>
       </div>
@@ -161,7 +164,6 @@ export default async function AdminDashboard() {
             <h3 className="text-white font-bold text-lg">Recent Orders</h3>
             <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mt-1">Latest transactions</p>
           </div>
-          {/* REPLACED: text-yellow-500 hover:text-yellow-400 -> text-brand hover:text-brand-hover */}
           <Link href="/admin/orders" className="flex items-center gap-1 text-xs font-bold text-brand hover:text-brand-hover uppercase tracking-widest transition-colors duration-300">
             View All <ArrowUpRight className="w-4 h-4" />
           </Link>
@@ -198,7 +200,6 @@ export default async function AdminDashboard() {
                       order.status === 'PAID' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                       order.status === 'SHIPPED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                       order.status === 'CANCELLED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                      // REPLACED: yellow -> brand
                       'bg-brand/10 text-brand border-brand/20'
                     }`}>
                       {order.status}
